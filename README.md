@@ -20,7 +20,59 @@ Tidak ada akun admin atau rahasia bawaan. Sebelum konfigurasi disimpan pertama k
 
 - **Rekap metrik**: spreadsheet dengan bagian metrik sales harian, mingguan, dan bulanan seperti rekap awal.
 - **Spreadsheet per orang**: di Admin tambahkan divisi (`Marketing`, `Ads`, atau `Konten`), nama orang, dan link Google Sheets miliknya. Untuk saat ini, sheet Marketing per orang menjadi sumber laporan Marketing; laporan Ads tetap menggunakan spreadsheet rekap umum. Link Konten dapat disimpan untuk digunakan saat laporannya ditambahkan.
-- Sheet Marketing per orang harus berisi satu baris per lead, dengan header tanggal lead (`Tanggal Lead`, `Tanggal Masuk`, `Tanggal`, `Lead Date`, atau `Column 1`), sumber/platform (`Sumber Leads`, `Sumber Lead`, `Platform`, atau `Asal Lead`), tanggal follow-up (`FU 1`–`FU 8` atau `Follow Up 1`–`Follow Up 8`), serta kolom tanggal aktivitas `Janji Visit`/`Rencana Visit`, `Visit Terlaksana`/`Tanggal Visit`, dan `Booking`/`Closing`. Kolom aktivitas harus berisi tanggal kejadian, bukan hanya status ya/tidak. Agar detail booking menampilkan nama, sertakan kolom nama lead seperti `Nama Lead`, `Nama Prospek`, atau `Nama Customer`.
+- Sheet Marketing per orang harus berisi satu baris per lead. Parser mencari header tabel pada 20 baris pertama dan mendukung kolom tanggal (`Tanggal Lead`, `Tanggal Masuk`, `Tanggal`, `Lead Date`, atau `Column 1`), sumber/platform (`Sumber Leads`, `Sumber Lead`, `Platform`, atau `Asal Lead`), follow-up (`FU 1`–`FU 8` atau `Follow Up 1`–`Follow Up 8`), janji visit (`Janji Visit`/`Rencana Visit`), visit (`Visit Terlaksana`/`Tanggal Visit`), dan booking (`Booking`/`Closing`). Checkbox janji/visit yang dicentang dihitung memakai tanggal lead. Nilai blok seperti `A-01` menandakan booking; tanggal booking diambil dari kolom `Tanggal Closing Diisi` (atau `Tanggal Closing`/`Tanggal Booking`), bukan tanggal lead.
+- Untuk merekam tanggal saat closing diisi, tambahkan Apps Script berikut ke setiap spreadsheet Marketing: buka **Extensions → Apps Script**, tempel kode di bawah, lalu simpan. Script menambahkan kolom `Tanggal Closing Diisi` jika belum ada dan mencatat tanggal saat nilai kolom `Closing`/`Booking`/`Kode Blok` diisi atau diubah. Kosongkan kode blok untuk menghapus timestamp.
+
+```javascript
+function onEdit(e) {
+  if (!e || !e.range) return;
+
+  const sheet = e.range.getSheet();
+  const lastColumn = Math.max(sheet.getLastColumn(), 1);
+  const searchRows = Math.min(sheet.getLastRow(), 20);
+  if (!searchRows) return;
+
+  const headers = sheet.getRange(1, 1, searchRows, lastColumn).getDisplayValues();
+  let headerRow = -1;
+  let closingColumn = -1;
+  let timestampColumn = -1;
+
+  for (let row = 0; row < headers.length; row += 1) {
+    const normalized = headers[row].map((value) => value.trim().toLowerCase().replace(/\s+/g, " "));
+    const closingIndex = normalized.findIndex((value) =>
+      ["closing", "booking", "booking/closing", "booking / closing", "kode blok", "blok"].includes(value)
+    );
+    if (closingIndex < 0) continue;
+    headerRow = row + 1;
+    closingColumn = closingIndex + 1;
+    timestampColumn = normalized.indexOf("tanggal closing diisi") + 1;
+    break;
+  }
+
+  if (headerRow < 0 || e.range.getColumn() > closingColumn ||
+      e.range.getLastColumn() < closingColumn || e.range.getLastRow() <= headerRow) return;
+
+  if (!timestampColumn) {
+    timestampColumn = sheet.getLastColumn() + 1;
+    sheet.getRange(headerRow, timestampColumn).setValue("Tanggal Closing Diisi");
+  }
+
+  const firstRow = Math.max(e.range.getRow(), headerRow + 1);
+  const lastRow = e.range.getLastRow();
+  const timestamp = new Date();
+  for (let row = firstRow; row <= lastRow; row += 1) {
+    const code = String(sheet.getRange(row, closingColumn).getDisplayValue()).trim();
+    const cell = sheet.getRange(row, timestampColumn);
+    if (code && !["false", "0", "-"].includes(code.toLowerCase())) {
+      cell.setValue(timestamp).setNumberFormat("dd/MM/yyyy");
+    } else {
+      cell.clearContent();
+    }
+  }
+}
+```
+
+- Agar detail booking menampilkan nama, sertakan kolom nama lead seperti `Nama Lead`, `Nama User`, `Nama Prospek`, atau `Nama Customer`.
 - Marketing menampilkan total gabungan serta rincian angka per orang untuk lead, follow-up, janji visit, visit terlaksana, dan booking/closing. Angka disajikan terpisah untuk hari ini, minggu ini, dan bulan ini; tabel juga merinci lead menurut platform per orang dan total.
 - Angka booking dapat diklik untuk membuka daftar nama lead, tanggal booking, platform, dan nama marketing. Detail ini bersifat publik karena dashboard tidak mewajibkan login pengunjung; nomor telepon dan domisili tidak ditampilkan.
 - Jika belum ada spreadsheet Marketing per orang yang tersimpan, dashboard sementara memakai spreadsheet jenis `Daftar lead` lama. Saat spreadsheet per orang ditambahkan, sumber lama tersebut tidak digabung agar data tidak terhitung ganda.
