@@ -423,10 +423,14 @@
       if (text.includes("rencana visit")) return "plannedVisits";
       if (text.includes("visit terlaksana")) return "visits";
       if (text.includes("booking") || text.includes("closing")) return "bookings";
-      if (text.includes("leads masuk") || text === "leads" || text.includes("total leads")) return "leads";
+      if (text.includes("leads masuk") || text.includes("lead masuk") ||
+          text === "lead" || text === "leads" || text.includes("total leads") ||
+          text.includes("lead ads") || text.includes("leads ads") ||
+          text.includes("lead iklan") || text.includes("leads iklan")) return "leads";
       if (text.includes("reach")) return "reach";
       if (text.includes("klik link")) return "clicks";
-      if (text.includes("biaya") || text.includes("spend")) return "spend";
+      if (text.includes("biaya") || text.includes("spend") ||
+          text.includes("pengeluaran") || text.includes("anggaran")) return "spend";
       if (text.includes("cpl")) return "cpl";
       return null;
     }
@@ -979,46 +983,57 @@
     }
 
     function matchingAdsPeriod(key, range) {
-      const rangeEnd = key === "week"
-        ? new Date(range.start.getTime() + 6 * 86400000)
-        : key === "month"
-          ? new Date(Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth() + 1, 0))
-          : range.end;
+      if (key === "custom") {
+        return { available: false, people: [], leads: 0, spend: 0, cpl: 0 };
+      }
+      const weekEnd = new Date(Date.UTC(
+        range.start.getUTCFullYear(),
+        range.start.getUTCMonth(),
+        range.start.getUTCDate() + 6
+      ));
       const matching = [];
       state.summary.forEach(({ data }) => {
         const report = data[key];
         if (!report || !report.start || !report.end) return;
         if (key === "month") {
-          if (report.start.getUTCFullYear() === range.start.getUTCFullYear() &&
-              report.start.getUTCMonth() === range.start.getUTCMonth() &&
-              report.end.getUTCFullYear() === range.start.getUTCFullYear() &&
-              report.end.getUTCMonth() === range.start.getUTCMonth()) matching.push(report);
+          const sameMonth = (date) =>
+            date.getUTCFullYear() === range.start.getUTCFullYear() &&
+            date.getUTCMonth() === range.start.getUTCMonth();
+          if (sameMonth(report.start) && sameMonth(report.end)) matching.push(report);
           return;
         }
-        const exactStart = report.start.getTime() === range.start.getTime();
-        const validEnd = key === "week"
-          ? report.end >= range.end && report.end <= rangeEnd
-          : report.end.getTime() === range.end.getTime();
-        if (exactStart && validEnd) matching.push(report);
+        if (key === "day") {
+          if (report.start.getTime() === range.start.getTime() &&
+              report.end.getTime() === range.end.getTime()) matching.push(report);
+          return;
+        }
+        const sameWeekStart = report.start.getTime() === range.start.getTime();
+        const endInsideWeek = report.end >= range.start && report.end <= weekEnd;
+        if (sameWeekStart && endInsideWeek) matching.push(report);
       });
 
       const people = new Map();
       matching.forEach((report) => (report.ads || []).forEach((item) => {
-        const name = personFor(item.name);
-        if (!people.has(name)) people.set(name, { name, leads: 0, spend: 0 });
-        const person = people.get(name);
+        const name = String(item.name || "").trim() || "Tidak diketahui";
+        const keyName = canonicalName(name);
+        if (!people.has(keyName)) people.set(keyName, { name, leads: 0, spend: 0 });
+        const person = people.get(keyName);
         person.leads += item.values.leads || 0;
         person.spend += item.values.spend || 0;
       }));
-      const ads = configuredMarketingPeople.map((name) =>
-        people.get(name) || { name, leads: 0, spend: 0 }
-      );
-      if (people.has("Lainnya")) ads.push(people.get("Lainnya"));
+      const ads = [...people.values()];
+      configuredTeamSheets
+        .filter((entry) => normalize(entry.division) === "ads")
+        .forEach((entry) => {
+          const keyName = canonicalName(entry.name);
+          if (!people.has(keyName)) ads.push({ name: entry.name, leads: 0, spend: 0 });
+        });
       const leads = ads.reduce((sum, item) => sum + item.leads, 0);
       const spend = ads.reduce((sum, item) => sum + item.spend, 0);
       return {
-        available: matching.length > 0 && ads.length > 0,
-        people: ads.map((item) => ({ ...item, cpl: item.leads > 0 ? item.spend / item.leads : 0 })),
+        available: matching.length > 0,
+        people: ads.map((item) => ({ ...item, cpl: item.leads > 0 ? item.spend / item.leads : 0 }))
+          .sort((a, b) => b.spend - a.spend || a.name.localeCompare(b.name, "id")),
         leads,
         spend,
         cpl: leads > 0 ? spend / leads : 0
@@ -1073,7 +1088,7 @@
         addMiniKpi(kpis, "CPL", data.available ? formatMoney(data.cpl) : "—", true);
         card.append(kpis);
 
-        card.append(createElement("div", "mini-section-title", "Iklan per marketing · biaya"));
+        card.append(createElement("div", "mini-section-title", "Pengeluaran per advertiser"));
         if (!data.available) {
           const message = key === "custom"
             ? "Data Ads untuk rentang pilihan belum tersedia karena spreadsheet rekap tidak menyediakan data harian."
@@ -1085,7 +1100,7 @@
           const spendChart = createElement("div", "mini-chart");
           renderMiniChart(spendChart, data.people, "spend", true, formatMoney);
           card.append(spendChart);
-          card.append(createElement("div", "mini-section-title", "Marketing · lead / CPL"));
+          card.append(createElement("div", "mini-section-title", "Advertiser · lead / CPL"));
           const people = createElement("div", "ads-person-list");
           data.people.forEach((person) => {
             const row = createElement("div", "ads-person-row");
