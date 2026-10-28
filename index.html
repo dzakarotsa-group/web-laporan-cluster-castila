@@ -80,6 +80,11 @@
     .division-heading h2 { font-size: 20px; }
     .period-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
     .period-card { min-width: 0; padding: 17px; }
+    .date-filter { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 14px; }
+    .date-filter .form-field { min-width: 150px; }
+    .date-filter-actions { display: flex; gap: 7px; }
+    .date-filter-message { flex-basis: 100%; margin: 0; color: #a33a47; font-size: 11px; }
+    .date-filter-message:empty { display: none; }
     .period-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 15px; }
     .period-card-heading h3 { margin: 0; color: #243450; font-size: 15px; }
     .period-date { margin-top: 5px; color: var(--muted); font-size: 10px; }
@@ -116,6 +121,10 @@
     .booking-detail-item { display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: #52617a; font-size: 12px; }
     .booking-detail-item strong { color: #293852; font-size: 13px; }
     .booking-detail-meta { color: #718096; font-size: 11px; }
+    .sheet-dialog { width: min(1200px, calc(100% - 24px)); max-width: 1200px; height: min(88vh, 900px); padding: 18px; }
+    .sheet-frame { display: block; width: 100%; height: calc(100% - 62px); border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .person-name-button { border: 0; padding: 2px 0; color: #3156a5; background: transparent; font: inherit; font-weight: 800; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+    .person-name-button:hover { color: #1d3978; }
     .ads-person-list { display: grid; gap: 7px; }
     .ads-person-row { display: grid; grid-template-columns: minmax(48px, 1fr) auto auto; gap: 9px; border-top: 1px solid #eff2f6; padding-top: 7px; color: #58667c; font-size: 10px; }
     .ads-person-row strong { color: #293852; font-weight: 800; }
@@ -222,6 +231,17 @@
       <div class="booking-detail-list" id="bookingDetailList"></div>
     </dialog>
 
+    <dialog class="card admin-panel sheet-dialog" id="teamSheetDialog" aria-labelledby="teamSheetDialogTitle">
+      <div class="admin-title-row">
+        <div>
+          <h2 id="teamSheetDialogTitle">Spreadsheet Marketing</h2>
+          <p class="panel-subtitle">Tampilan spreadsheet lengkap dan dapat dilihat publik.</p>
+        </div>
+        <button class="secondary-button" id="closeTeamSheetDialog" type="button">Tutup</button>
+      </div>
+      <iframe class="sheet-frame" id="teamSheetFrame" title="Spreadsheet detail Marketing" loading="lazy"></iframe>
+    </dialog>
+
     <section class="source-status" id="sourceStatus" aria-label="Status sumber data"></section>
     <div class="error-banner" id="errorBanner" role="alert"></div>
     <div class="loading-banner" id="loadingBanner">Mengambil data dari Google Sheets...</div>
@@ -234,6 +254,22 @@
         </div>
         <span class="live-badge">Diperbarui otomatis</span>
       </div>
+
+      <form class="card date-filter" id="dateFilterForm">
+        <label class="form-field">
+          Dari tanggal
+          <input id="dateFilterStart" type="date" required>
+        </label>
+        <label class="form-field">
+          Sampai tanggal
+          <input id="dateFilterEnd" type="date" required>
+        </label>
+        <div class="date-filter-actions">
+          <button class="primary-button" type="submit">Tampilkan</button>
+          <button class="secondary-button" id="clearDateFilter" type="button">Hapus filter</button>
+        </div>
+        <p class="date-filter-message" id="dateFilterMessage" role="status" aria-live="polite"></p>
+      </form>
 
       <section class="division-section" aria-labelledby="marketingTitle">
         <div class="division-heading">
@@ -256,7 +292,7 @@
       </section>
 
       <p class="footer">Data diperbarui setiap 5 menit dan dapat dimuat ulang dengan tombol di atas. Marketing dihitung dari tanggal masing-masing aktivitas; Ads mengikuti periode rekap yang tersedia.</p>
-      <p class="privacy-note">Laporan menampilkan data agregat. Nama lead hanya ditampilkan pada detail booking yang dapat dilihat semua pengunjung; nomor telepon dan domisili tidak ditampilkan.</p>
+      <p class="privacy-note">Spreadsheet Marketing dapat dibuka semua pengunjung dashboard dan menampilkan seluruh kolom yang dibagikan, termasuk informasi kontak jika ada. Pastikan akses publik dan isi sheet memang boleh dilihat publik.</p>
     </section>
   </main>
 
@@ -270,6 +306,7 @@
     let configuredSources = [];
     let configuredMarketingPeople = [];
     let configuredTeamSheets = [];
+    let selectedDateRange = null;
     let loadInProgress = false;
     const numberFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
     const moneyFormat = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
@@ -504,9 +541,7 @@
         bookingDate: ["Tanggal Closing Diisi", "Tanggal Closing", "Tanggal Booking", "Booking Date"],
         booking: ["Booking", "Closing", "Booking/Closing", "Booking / Closing", "Kode Blok", "Blok"]
       };
-      const recognizedHeaders = new Set(Object.values(headerAliases).flat().map(normalize));
       const headerRowIndex = rows.slice(0, 20).findIndex((row) =>
-        row.map(normalize).some((header) => recognizedHeaders.has(header)) &&
         row.map(normalize).some((header) => headerAliases.date.map(normalize).includes(header)) &&
         row.map(normalize).some((header) => headerAliases.source.map(normalize).includes(header))
       );
@@ -515,7 +550,7 @@
       }
       const headers = rows[headerRowIndex].map(normalize);
       const indexOfAny = (names) => headers.findIndex((header) => names.map(normalize).includes(header));
-      const dateIndex = indexOfAny(["Column 1", "Tanggal Lead", "Tanggal Masuk", "Tanggal", "Lead Date"]);
+      const dateIndex = indexOfAny(headerAliases.date);
       const salesIndex = indexOfAny(["Nama Sales", "Nama Marketing", "Marketing"]);
       const leadNameIndex = indexOfAny(headerAliases.leadName);
       const sourceIndex = indexOfAny(["Sumber Leads", "Sumber Lead", "Platform", "Asal Lead"]);
@@ -810,6 +845,37 @@
       if (!dialog.open) dialog.showModal();
     }
 
+    function findTeamSheet(personName, division) {
+      const targetName = canonicalName(personName);
+      return configuredTeamSheets.find((entry) =>
+        normalize(entry.division) === normalize(division) &&
+        canonicalName(entry.name) === targetName
+      ) || null;
+    }
+
+    function openTeamSpreadsheet(entry) {
+      const dialog = document.getElementById("teamSheetDialog");
+      document.getElementById("teamSheetDialogTitle").textContent =
+        `Spreadsheet ${entry.division} · ${entry.name}`;
+      const frame = document.getElementById("teamSheetFrame");
+      frame.title = `Spreadsheet ${entry.division} ${entry.name}`;
+      frame.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/preview?rm=minimal`;
+      if (!dialog.open) dialog.showModal();
+    }
+
+    function appendPersonNameCell(cell, personName, division = "Marketing") {
+      const sheet = findTeamSheet(personName, division);
+      if (!sheet) {
+        cell.textContent = personName;
+        return;
+      }
+      const button = createElement("button", "person-name-button", personName);
+      button.type = "button";
+      button.setAttribute("aria-label", `Buka spreadsheet ${division} ${personName}`);
+      button.addEventListener("click", () => openTeamSpreadsheet(sheet));
+      cell.append(button);
+    }
+
     function renderMarketingPeopleTable(container, marketing, periodLabel) {
       const tableWrap = createElement("div", "person-table-wrap");
       const table = createElement("table", "person-table");
@@ -836,7 +902,9 @@
         });
 
         const row = document.createElement("tr");
-        row.append(createElement("td", "", person.name));
+        const nameCell = document.createElement("td");
+        appendPersonNameCell(nameCell, person.name);
+        row.append(nameCell);
         row.append(createElement("td", "", formatCount(person.leads)));
         row.append(createElement("td", "", formatCount(person.followUps)));
         row.append(createElement("td", "", formatCount(person.plannedVisits)));
@@ -959,7 +1027,10 @@
     function renderMarketingCards(periodRanges) {
       const container = document.getElementById("marketingPeriods");
       container.replaceChildren();
-      PERIODS.forEach(({ key, label }) => {
+      const periods = selectedDateRange
+        ? [...PERIODS, { key: "custom", label: "Rentang Pilihan" }]
+        : PERIODS;
+      periods.forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = marketingPeriodData(range);
         const card = periodCard(label, range);
@@ -986,7 +1057,10 @@
     function renderAdsCards(periodRanges) {
       const container = document.getElementById("adsPeriods");
       container.replaceChildren();
-      PERIODS.forEach(({ key, label }) => {
+      const periods = selectedDateRange
+        ? [...PERIODS, { key: "custom", label: "Rentang Pilihan" }]
+        : PERIODS;
+      periods.forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = matchingAdsPeriod(key, range);
         const card = periodCard(label, range);
@@ -998,9 +1072,12 @@
 
         card.append(createElement("div", "mini-section-title", "Iklan per marketing · biaya"));
         if (!data.available) {
-          card.append(createElement("div", "empty-state", key === "week"
-            ? "Rekap iklan untuk minggu berjalan belum tersedia di spreadsheet."
-            : "Rekap iklan untuk periode ini belum tersedia di spreadsheet."));
+          const message = key === "custom"
+            ? "Data Ads untuk rentang pilihan belum tersedia karena spreadsheet rekap tidak menyediakan data harian."
+            : key === "week"
+              ? "Rekap iklan untuk minggu berjalan belum tersedia di spreadsheet."
+              : "Rekap iklan untuk periode ini belum tersedia di spreadsheet.";
+          card.append(createElement("div", "empty-state", message));
         } else {
           const spendChart = createElement("div", "mini-chart");
           renderMiniChart(spendChart, data.people, "spend", true, formatMoney);
@@ -1022,12 +1099,41 @@
 
     function render() {
       const periodRanges = automaticPeriods();
+      if (selectedDateRange) periodRanges.custom = selectedDateRange;
       document.getElementById("dashboard").classList.remove("hidden");
       document.getElementById("lastUpdated").textContent = state.lastUpdated
         ? `Terakhir diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(state.lastUpdated)}`
         : "Memuat laporan...";
       renderMarketingCards(periodRanges);
       renderAdsCards(periodRanges);
+    }
+
+    function applyDateFilter(event) {
+      event.preventDefault();
+      const startInput = document.getElementById("dateFilterStart");
+      const endInput = document.getElementById("dateFilterEnd");
+      const message = document.getElementById("dateFilterMessage");
+      const start = parseDate(startInput.value);
+      const end = parseDate(endInput.value);
+      if (!start || !end) {
+        message.textContent = "Pilih tanggal mulai dan tanggal akhir.";
+        return;
+      }
+      if (start > end) {
+        message.textContent = "Tanggal mulai tidak boleh setelah tanggal akhir.";
+        return;
+      }
+      message.textContent = "";
+      selectedDateRange = { start, end };
+      render();
+    }
+
+    function clearDateFilter() {
+      selectedDateRange = null;
+      document.getElementById("dateFilterStart").value = "";
+      document.getElementById("dateFilterEnd").value = "";
+      document.getElementById("dateFilterMessage").textContent = "";
+      render();
     }
 
     async function loadSource(source) {
@@ -1387,6 +1493,14 @@
     }
 
     document.getElementById("refreshButton").addEventListener("click", loadData);
+    document.getElementById("dateFilterForm").addEventListener("submit", applyDateFilter);
+    document.getElementById("clearDateFilter").addEventListener("click", clearDateFilter);
+    document.getElementById("dateFilterStart").addEventListener("change", () => {
+      document.getElementById("dateFilterMessage").textContent = "";
+    });
+    document.getElementById("dateFilterEnd").addEventListener("change", () => {
+      document.getElementById("dateFilterMessage").textContent = "";
+    });
     document.getElementById("adminToggle").addEventListener("click", openAdminPanel);
     document.getElementById("closeAdmin").addEventListener("click", () => document.getElementById("adminPanel").close());
     document.getElementById("adminPanel").addEventListener("close", () => {
@@ -1400,6 +1514,10 @@
     document.getElementById("saveSourcesButton").addEventListener("click", saveAdminSources);
     document.getElementById("adminLogout").addEventListener("click", logoutAdmin);
     document.getElementById("closeBookingDialog").addEventListener("click", () => document.getElementById("bookingDialog").close());
+    document.getElementById("closeTeamSheetDialog").addEventListener("click", () => document.getElementById("teamSheetDialog").close());
+    document.getElementById("teamSheetDialog").addEventListener("close", () => {
+      document.getElementById("teamSheetFrame").src = "about:blank";
+    });
     loadData();
     window.setInterval(loadData, 5 * 60 * 1000);
   </script>
