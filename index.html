@@ -312,7 +312,7 @@
     }
 
     function normalize(value) {
-      return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+      return String(value || "").replace(/^\uFEFF/, "").trim().toLowerCase().replace(/\s+/g, " ");
     }
 
     function numeric(value) {
@@ -336,16 +336,40 @@
     }
 
     function parseDate(value) {
-      const text = String(value || "").trim().split(/[ T]/)[0];
-      let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      const raw = String(value || "").trim();
+      const datePart = raw.match(/^(\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})(?=$|[ T])/);
+      const text = datePart ? datePart[1] : raw;
+      let match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
       if (match) return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-      match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      match = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
       if (match) {
         const first = Number(match[1]);
         const second = Number(match[2]);
+        let year = Number(match[3]);
+        if (year < 100) year += year >= 70 ? 1900 : 2000;
         const month = first > 12 ? second : second > 12 ? first : second;
         const day = first > 12 ? first : second > 12 ? second : first;
-        return new Date(Date.UTC(Number(match[3]), month - 1, day));
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+      const monthNames = {
+        jan: 0, januari: 0, january: 0, feb: 1, februari: 1, february: 1,
+        mar: 2, maret: 2, march: 2, apr: 3, april: 3, may: 4, mei: 4,
+        jun: 5, juni: 5, june: 5, jul: 6, juli: 6, july: 6,
+        agu: 7, agustus: 7, aug: 7, august: 7, sep: 8, september: 8,
+        okt: 9, oktober: 9, oct: 9, october: 9, nov: 10, november: 10,
+        des: 11, desember: 11, dec: 11, december: 11
+      };
+      match = text.toLowerCase().match(/^(\d{1,2})[\s-]+([a-z]+)[\s-]+(\d{2,4})$/);
+      if (match && monthNames[match[2]] !== undefined) {
+        let year = Number(match[3]);
+        if (year < 100) year += year >= 70 ? 1900 : 2000;
+        return new Date(Date.UTC(year, monthNames[match[2]], Number(match[1])));
+      }
+      if (/^\d{5}$/.test(text)) {
+        const serial = Number(text);
+        if (serial >= 20000 && serial <= 100000) {
+          return new Date(Date.UTC(1899, 11, 30 + serial));
+        }
       }
       return null;
     }
@@ -470,27 +494,51 @@
     function parseLeadRecords(text, personName = "") {
       const rows = parseCsv(text);
       if (rows.length < 2) throw new Error("Daftar lead tidak berisi data.");
-      const headers = rows[0].map((header) => normalize(header));
-      const indexOfAny = (names) => {
-        for (const name of names) {
-          const index = headers.indexOf(normalize(name));
-          if (index >= 0) return index;
-        }
-        return -1;
+      const headerAliases = {
+        date: ["Column 1", "Tanggal Lead", "Tanggal Masuk", "Tanggal", "Lead Date"],
+        sales: ["Nama Sales", "Nama Marketing", "Marketing"],
+        leadName: ["Nama Lead", "Nama User", "Nama Prospek", "Nama Customer", "Nama Konsumen", "Customer", "Prospek"],
+        source: ["Sumber Leads", "Sumber Lead", "Platform", "Asal Lead"],
+        plannedVisit: ["Janji Visit", "Tanggal Janji Visit", "Rencana Visit", "Tanggal Rencana Visit"],
+        visit: ["Visit Terlaksana", "Tanggal Visit Terlaksana", "Tanggal Visit", "Visit"],
+        bookingDate: ["Tanggal Closing Diisi", "Tanggal Closing", "Tanggal Booking", "Booking Date"],
+        booking: ["Booking", "Closing", "Booking/Closing", "Booking / Closing", "Kode Blok", "Blok"]
       };
+      const recognizedHeaders = new Set(Object.values(headerAliases).flat().map(normalize));
+      const headerRowIndex = rows.slice(0, 20).findIndex((row) =>
+        row.map(normalize).some((header) => recognizedHeaders.has(header)) &&
+        row.map(normalize).some((header) => headerAliases.date.map(normalize).includes(header)) &&
+        row.map(normalize).some((header) => headerAliases.source.map(normalize).includes(header))
+      );
+      if (headerRowIndex < 0) {
+        throw new Error("Header spreadsheet tidak ditemukan. Pastikan ada kolom Tanggal dan Sumber Leads.");
+      }
+      const headers = rows[headerRowIndex].map(normalize);
+      const indexOfAny = (names) => headers.findIndex((header) => names.map(normalize).includes(header));
       const dateIndex = indexOfAny(["Column 1", "Tanggal Lead", "Tanggal Masuk", "Tanggal", "Lead Date"]);
       const salesIndex = indexOfAny(["Nama Sales", "Nama Marketing", "Marketing"]);
-      const leadNameIndex = indexOfAny(["Nama Lead", "Nama Prospek", "Nama Customer", "Nama Konsumen", "Customer", "Prospek"]);
+      const leadNameIndex = indexOfAny(headerAliases.leadName);
       const sourceIndex = indexOfAny(["Sumber Leads", "Sumber Lead", "Platform", "Asal Lead"]);
       const plannedVisitIndex = indexOfAny(["Janji Visit", "Tanggal Janji Visit", "Rencana Visit", "Tanggal Rencana Visit"]);
       const visitIndex = indexOfAny(["Visit Terlaksana", "Tanggal Visit Terlaksana", "Tanggal Visit", "Visit"]);
-      const bookingIndex = indexOfAny(["Tanggal Booking", "Booking", "Tanggal Closing", "Closing", "Booking/Closing", "Booking / Closing"]);
+      const bookingDateIndex = indexOfAny(headerAliases.bookingDate);
+      const bookingIndex = indexOfAny(headerAliases.booking);
       if (dateIndex < 0 || sourceIndex < 0 || (salesIndex < 0 && !personName)) {
         throw new Error("Kolom tanggal lead dan sumber/platform wajib ada; kolom sales wajib ada jika sheet dipakai bersama.");
       }
       const fuIndexes = headers.map((header, index) => /^(?:fu|follow up) \d+$/.test(header) ? index : -1).filter((index) => index >= 0);
       const records = [];
-      for (const row of rows.slice(1)) {
+      const isChecked = (value) => /^(?:true|yes|ya|1|✓|✔|☑|checked)$/i.test(String(value || "").trim());
+      const hasBookingValue = (value) => {
+        const text = String(value || "").trim();
+        return Boolean(text) && !/^(?:false|no|tidak|0|-|n\/a|na)$/i.test(text);
+      };
+      const activityDate = (row, index, leadDate) => {
+        if (index < 0) return null;
+        const value = row[index];
+        return parseDate(value) || (isChecked(value) ? leadDate : null);
+      };
+      for (const row of rows.slice(headerRowIndex + 1)) {
         const date = parseDate(row[dateIndex]);
         if (!date) continue;
         const followUpDates = [];
@@ -504,10 +552,17 @@
           leadName: leadNameIndex >= 0 ? String(row[leadNameIndex] || "").trim() : "",
           source: String(row[sourceIndex] || "").trim() || "Tidak diketahui",
           followUpDates,
-          plannedVisitDate: plannedVisitIndex >= 0 ? parseDate(row[plannedVisitIndex]) : null,
-          visitDate: visitIndex >= 0 ? parseDate(row[visitIndex]) : null,
-          bookingDate: bookingIndex >= 0 ? parseDate(row[bookingIndex]) : null
+          plannedVisitDate: activityDate(row, plannedVisitIndex, date),
+          visitDate: activityDate(row, visitIndex, date),
+          bookingDate: bookingIndex >= 0 && hasBookingValue(row[bookingIndex])
+            ? parseDate(bookingDateIndex >= 0 ? row[bookingDateIndex] : "") ||
+              parseDate(row[bookingIndex])
+            : null,
+          bookingCode: bookingIndex >= 0 ? String(row[bookingIndex] || "").trim() : ""
         });
+      }
+      if (!records.length) {
+        throw new Error("Header ditemukan, tetapi tidak ada tanggal lead yang terbaca. Periksa format tanggal di sheet.");
       }
       return records;
     }
@@ -594,7 +649,8 @@
             name: record.leadName || "Nama tidak tersedia",
             date: record.bookingDate,
             source: record.source || "Tidak diketahui",
-            marketing: record.sales || "Tidak diketahui"
+            marketing: record.sales || "Tidak diketahui",
+            code: record.bookingCode || ""
           });
           if (person) {
             if (!person.bookingDetails) person.bookingDetails = [];
@@ -743,6 +799,9 @@
         [...details].sort((a, b) => b.date - a.date).forEach((detail) => {
           const item = createElement("article", "booking-detail-item");
           item.append(createElement("strong", "", detail.name));
+          if (detail.code && !parseDate(detail.code)) {
+            item.append(createElement("span", "booking-detail-meta", `Blok: ${detail.code}`));
+          }
           item.append(createElement("span", "booking-detail-meta", `Tanggal: ${dateText(detail.date)}`));
           item.append(createElement("span", "booking-detail-meta", `Platform: ${detail.source} · Marketing: ${detail.marketing}`));
           list.append(item);
