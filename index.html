@@ -261,10 +261,11 @@
         <span class="live-badge">Diperbarui otomatis</span>
       </div>
 
-      <div class="report-view-toggle" role="group" aria-label="Pilih fokus laporan">
-        <span class="report-view-label">Fokus laporan:</span>
-        <button class="report-view-button" id="weeklyReportButton" type="button" aria-pressed="true">Mingguan</button>
-        <button class="report-view-button" id="monthlyReportButton" type="button" aria-pressed="false">Bulanan</button>
+      <div class="report-view-toggle" role="group" aria-label="Pilih mode laporan">
+        <span class="report-view-label">Mode laporan:</span>
+        <button class="report-view-button" id="overviewReportButton" type="button" aria-pressed="true">Ringkasan Otomatis</button>
+        <button class="report-view-button" id="weeklyReportButton" type="button" aria-pressed="false">Laporan Mingguan</button>
+        <button class="report-view-button" id="monthlyReportButton" type="button" aria-pressed="false">Laporan Bulanan</button>
       </div>
 
       <form class="card date-filter" id="dateFilterForm">
@@ -319,7 +320,7 @@
     let configuredMarketingPeople = [];
     let configuredTeamSheets = [];
     let selectedDateRange = null;
-    let selectedReportPeriod = "week";
+    let selectedReportPeriod = "overview";
     let loadInProgress = false;
     const numberFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
     const moneyFormat = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
@@ -1118,6 +1119,9 @@
     }
 
     function displayedReportPeriods() {
+      if (selectedReportPeriod === "overview") {
+        return selectedDateRange ? [{ key: "custom", label: "Rentang Pilihan" }, ...PERIODS] : PERIODS;
+      }
       const periods = PERIODS.filter(({ key }) => key === selectedReportPeriod);
       return selectedDateRange ? [{ key: "custom", label: "Rentang Pilihan" }, ...periods] : periods;
     }
@@ -1125,7 +1129,7 @@
     function renderMarketingCards(periodRanges) {
       const container = document.getElementById("marketingPeriods");
       container.replaceChildren();
-      container.classList.add("focused-period-grid");
+      container.classList.toggle("focused-period-grid", selectedReportPeriod !== "overview");
       displayedReportPeriods().forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = marketingPeriodData(range);
@@ -1154,7 +1158,7 @@
     function renderAdsCards(periodRanges) {
       const container = document.getElementById("adsPeriods");
       container.replaceChildren();
-      container.classList.add("focused-period-grid");
+      container.classList.toggle("focused-period-grid", selectedReportPeriod !== "overview");
       displayedReportPeriods().forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = matchingAdsPeriod(key, range);
@@ -1196,6 +1200,7 @@
     function render() {
       const periodRanges = automaticPeriods();
       if (selectedDateRange) periodRanges.custom = selectedDateRange;
+      document.getElementById("overviewReportButton").setAttribute("aria-pressed", String(selectedReportPeriod === "overview"));
       document.getElementById("weeklyReportButton").setAttribute("aria-pressed", String(selectedReportPeriod === "week"));
       document.getElementById("monthlyReportButton").setAttribute("aria-pressed", String(selectedReportPeriod === "month"));
       document.getElementById("dashboard").classList.remove("hidden");
@@ -1619,6 +1624,10 @@
     }
 
     document.getElementById("refreshButton").addEventListener("click", loadData);
+    document.getElementById("overviewReportButton").addEventListener("click", () => {
+      selectedReportPeriod = "overview";
+      render();
+    });
     document.getElementById("weeklyReportButton").addEventListener("click", () => {
       selectedReportPeriod = "week";
       render();
