@@ -19,14 +19,17 @@ Tidak ada akun admin atau rahasia bawaan. Sebelum konfigurasi disimpan pertama k
 ## Mengelola sumber
 
 - **Rekap metrik**: spreadsheet dengan bagian metrik sales harian, mingguan, dan bulanan seperti rekap awal.
-- **Daftar lead**: spreadsheet detail dengan kolom tanggal, `Nama Sales`, dan `Sumber Leads`.
-- Sesi admin dapat menambah atau mengurangi anggota Marketing; daftar nama ini menentukan pengelompokan leads di grafik. Nama sumber detail harus sama dengan nama anggota untuk masuk ke grafik anggota; nama yang belum cocok tetap masuk ke total pada kelompok “Lainnya”.
+- **Spreadsheet per orang**: di Admin tambahkan divisi (`Marketing`, `Ads`, atau `Konten`), nama orang, dan link Google Sheets miliknya. Untuk saat ini, sheet Marketing per orang menjadi sumber laporan Marketing; laporan Ads tetap menggunakan spreadsheet rekap umum. Link Konten dapat disimpan untuk digunakan saat laporannya ditambahkan.
+- Sheet Marketing per orang harus berisi satu baris per lead, dengan header tanggal lead (`Tanggal Lead`, `Tanggal Masuk`, `Tanggal`, `Lead Date`, atau `Column 1`), sumber/platform (`Sumber Leads`, `Sumber Lead`, `Platform`, atau `Asal Lead`), tanggal follow-up (`FU 1`–`FU 8` atau `Follow Up 1`–`Follow Up 8`), serta kolom tanggal aktivitas `Janji Visit`/`Rencana Visit`, `Visit Terlaksana`/`Tanggal Visit`, dan `Booking`/`Closing`. Kolom aktivitas harus berisi tanggal kejadian, bukan hanya status ya/tidak. Agar detail booking menampilkan nama, sertakan kolom nama lead seperti `Nama Lead`, `Nama Prospek`, atau `Nama Customer`.
+- Marketing menampilkan total gabungan serta rincian angka per orang untuk lead, follow-up, janji visit, visit terlaksana, dan booking/closing. Angka disajikan terpisah untuk hari ini, minggu ini, dan bulan ini; tabel juga merinci lead menurut platform per orang dan total.
+- Angka booking dapat diklik untuk membuka daftar nama lead, tanggal booking, platform, dan nama marketing. Detail ini bersifat publik karena dashboard tidak mewajibkan login pengunjung; nomor telepon dan domisili tidak ditampilkan.
+- Jika belum ada spreadsheet Marketing per orang yang tersimpan, dashboard sementara memakai spreadsheet jenis `Daftar lead` lama. Saat spreadsheet per orang ditambahkan, sumber lama tersebut tidak digabung agar data tidak terhitung ganda.
 - Link spreadsheet harus dapat dibaca publik oleh siapa pun yang memiliki link. Data yang bersifat privat memerlukan integrasi autentikasi Google dan tidak didukung oleh ekspor CSV publik ini.
 - Sumber rekap dengan tanggal periode yang sama dijumlahkan. Rekap dengan rentang tanggal berbeda tidak dijumlahkan untuk periode tersebut.
 - Hitungan dari beberapa daftar lead dijumlahkan dan ditampilkan terpisah dari angka rekap. Jika spreadsheet detail berisi lead yang sama, hitungannya dapat terduplikasi; dashboard tidak melakukan deduplikasi.
-- Dashboard hanya menampilkan agregat sumber lead, bukan nama, nomor telepon, atau domisili.
-- Dashboard Marketing menampilkan jumlah lead menurut tanggal masuk, jumlah tindak lanjut menurut tanggal `FU 1`–`FU 8`, anggota, dan sumber lead untuk hari ini, minggu berjalan (Senin sampai hari ini), serta bulan berjalan.
-- Halaman utama menampilkan tabel Marketing per anggota: jumlah lead, jumlah follow-up, serta setiap sumber lead beserta jumlahnya. Biaya, leads iklan, dan CPL hanya ditampilkan pada bagian Ads.
+- Dashboard menampilkan agregat data dan nama marketing. Nama lead hanya ditampilkan pada detail booking; nomor telepon dan domisili tidak diambil untuk ditampilkan.
+- Dashboard Marketing menampilkan jumlah lead, follow-up, janji visit, visit terlaksana, dan booking/closing per orang serta total untuk hari ini, minggu berjalan (Senin sampai hari ini), serta bulan berjalan.
+- Halaman utama menampilkan total Marketing dan tabel angka per orang untuk setiap periode; klik angka booking untuk melihat detail booking. Biaya, leads iklan, dan CPL hanya ditampilkan pada bagian Ads.
 - Dashboard Ads menggunakan tabel Ads pada spreadsheet rekap untuk periode berjalan. Jika rentang tanggal tabel Ads tidak cocok dengan periode yang sedang berjalan, nilai ditandai belum tersedia daripada menampilkan angka dari periode yang keliru.
 - Data dimuat ulang otomatis setiap 5 menit. Pengeluaran CPL dihitung sebagai total pengeluaran iklan dibagi total leads iklan.
 
