@@ -81,11 +81,12 @@ function onEdit(e) {
 - Sumber rekap dengan tanggal periode yang sama dijumlahkan. Rekap dengan rentang tanggal berbeda tidak dijumlahkan untuk periode tersebut.
 - Hitungan dari beberapa daftar lead dijumlahkan dan ditampilkan terpisah dari angka rekap. Jika spreadsheet detail berisi lead yang sama, hitungannya dapat terduplikasi; dashboard tidak melakukan deduplikasi.
 - Dashboard menampilkan agregat data dan nama marketing. Nama lead hanya ditampilkan pada detail booking; nomor telepon dan domisili tidak diambil untuk ditampilkan.
-- Dashboard Marketing menampilkan jumlah lead, follow-up, janji visit, visit terlaksana, dan booking/closing per orang serta total untuk hari ini, minggu berjalan (Senin sampai hari ini), serta bulan berjalan.
+- Dashboard Marketing menampilkan jumlah lead, follow-up, janji visit, visit terlaksana, dan booking/closing per orang serta total untuk hari ini, minggu berjalan (Minggu sampai Sabtu), serta bulan berjalan.
 - Halaman utama menampilkan total Marketing dan tabel angka per orang untuk setiap periode; klik angka booking untuk melihat detail booking. Biaya, leads iklan, dan CPL hanya ditampilkan pada bagian Ads.
-- Filter tanggal **Dari tanggal – Sampai tanggal** otomatis menambahkan/memperbarui kartu Rentang Pilihan di bagian paling atas dan pada baris tersendiri, setelah kedua tanggal dipilih; tombol Tampilkan juga dapat digunakan. Kartu Hari Ini, Minggu Ini, dan Bulan Ini tetap tampil di bawahnya. Data Ads untuk rentang pilihan belum dihitung karena sheet rekap Ads saat ini tidak menyediakan data harian.
-- Dashboard Ads menggunakan tabel Ads pada spreadsheet rekap untuk Hari Ini, Minggu Ini, dan Bulan Ini. Periode minggu dikenali dari tanggal awal minggu yang sama; tanggal akhir rekap boleh berada di hari mana pun dalam minggu tersebut. Nama advertiser mengikuti nama di tabel Ads (misalnya Andi), tidak dipetakan ke daftar Marketing atau digabung menjadi "Lainnya".
-- Jika rentang tanggal tabel Ads tidak cocok dengan periode otomatis, nilai ditandai belum tersedia daripada menampilkan angka dari periode yang keliru. Data dimuat ulang otomatis setiap 5 menit. CPL dihitung sebagai total pengeluaran iklan dibagi total leads iklan.
+- Filter tanggal **Dari tanggal – Sampai tanggal** otomatis menambahkan/memperbarui kartu Rentang Pilihan di bagian paling atas dan pada baris tersendiri, setelah kedua tanggal dipilih; tombol Tampilkan juga dapat digunakan. Kartu Hari Ini, Minggu Ini, dan Bulan Ini tetap tampil di bawahnya. Rentang pilihan Ads juga dihitung jika spreadsheet harian Ads tersedia.
+- Periode Minggu Ini menggunakan satu minggu kalender penuh dari Minggu sampai Sabtu untuk Marketing dan Ads.
+- Jika spreadsheet divisi Ads di admin berisi data harian dengan kolom `Tanggal`, `Nama Sales`, `Spend`, dan `Leads`, dashboard menghitung Hari Ini, Minggu Ini, Bulan Ini, dan Rentang Pilihan langsung dari tanggal setiap baris. Sumber harian ini dipakai untuk Ads ketika berhasil dimuat; nama advertiser mengikuti nama pada baris tersebut (misalnya Andi). Jika belum ada sumber harian Ads, dashboard memakai tabel Ads pada spreadsheet rekap untuk periode otomatis, dan menandai periode tidak cocok sebagai belum tersedia.
+- Data dimuat ulang otomatis setiap 5 menit. CPL dihitung sebagai total pengeluaran iklan dibagi total leads iklan.
 
 ## Pengembangan lokal
 
