@@ -79,8 +79,13 @@
     .division-mark.ads { background: var(--teal); }
     .division-heading h2 { font-size: 20px; }
     .period-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+    .period-grid.focused-period-grid { grid-template-columns: minmax(0, 1fr); }
     .period-card { min-width: 0; padding: 17px; }
     .period-card.custom-period-card { grid-column: 1 / -1; }
+    .report-view-toggle { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+    .report-view-label { margin-right: 3px; color: #69778d; font-size: 12px; font-weight: 750; }
+    .report-view-button { border: 1px solid var(--line); border-radius: 999px; padding: 9px 15px; color: #52617a; background: #fff; font-size: 12px; font-weight: 750; }
+    .report-view-button[aria-pressed="true"] { border-color: #243b67; color: #fff; background: #243b67; }
     .date-filter { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 14px; }
     .date-filter .form-field { min-width: 150px; }
     .date-filter-actions { display: flex; gap: 7px; }
@@ -256,6 +261,12 @@
         <span class="live-badge">Diperbarui otomatis</span>
       </div>
 
+      <div class="report-view-toggle" role="group" aria-label="Pilih fokus laporan">
+        <span class="report-view-label">Fokus laporan:</span>
+        <button class="report-view-button" id="weeklyReportButton" type="button" aria-pressed="true">Mingguan</button>
+        <button class="report-view-button" id="monthlyReportButton" type="button" aria-pressed="false">Bulanan</button>
+      </div>
+
       <form class="card date-filter" id="dateFilterForm">
         <label class="form-field">
           Dari tanggal
@@ -308,6 +319,7 @@
     let configuredMarketingPeople = [];
     let configuredTeamSheets = [];
     let selectedDateRange = null;
+    let selectedReportPeriod = "week";
     let loadInProgress = false;
     const numberFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
     const moneyFormat = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
@@ -1105,13 +1117,16 @@
       };
     }
 
+    function displayedReportPeriods() {
+      const periods = PERIODS.filter(({ key }) => key === selectedReportPeriod);
+      return selectedDateRange ? [{ key: "custom", label: "Rentang Pilihan" }, ...periods] : periods;
+    }
+
     function renderMarketingCards(periodRanges) {
       const container = document.getElementById("marketingPeriods");
       container.replaceChildren();
-      const periods = selectedDateRange
-        ? [{ key: "custom", label: "Rentang Pilihan" }, ...PERIODS]
-        : PERIODS;
-      periods.forEach(({ key, label }) => {
+      container.classList.add("focused-period-grid");
+      displayedReportPeriods().forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = marketingPeriodData(range);
         const card = periodCard(label, range);
@@ -1139,10 +1154,8 @@
     function renderAdsCards(periodRanges) {
       const container = document.getElementById("adsPeriods");
       container.replaceChildren();
-      const periods = selectedDateRange
-        ? [{ key: "custom", label: "Rentang Pilihan" }, ...PERIODS]
-        : PERIODS;
-      periods.forEach(({ key, label }) => {
+      container.classList.add("focused-period-grid");
+      displayedReportPeriods().forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = matchingAdsPeriod(key, range);
         const card = periodCard(label, range);
@@ -1183,6 +1196,8 @@
     function render() {
       const periodRanges = automaticPeriods();
       if (selectedDateRange) periodRanges.custom = selectedDateRange;
+      document.getElementById("weeklyReportButton").setAttribute("aria-pressed", String(selectedReportPeriod === "week"));
+      document.getElementById("monthlyReportButton").setAttribute("aria-pressed", String(selectedReportPeriod === "month"));
       document.getElementById("dashboard").classList.remove("hidden");
       document.getElementById("lastUpdated").textContent = state.lastUpdated
         ? `Terakhir diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(state.lastUpdated)}`
@@ -1604,6 +1619,14 @@
     }
 
     document.getElementById("refreshButton").addEventListener("click", loadData);
+    document.getElementById("weeklyReportButton").addEventListener("click", () => {
+      selectedReportPeriod = "week";
+      render();
+    });
+    document.getElementById("monthlyReportButton").addEventListener("click", () => {
+      selectedReportPeriod = "month";
+      render();
+    });
     document.getElementById("dateFilterForm").addEventListener("submit", applyDateFilter);
     document.getElementById("clearDateFilter").addEventListener("click", clearDateFilter);
     ["dateFilterStart", "dateFilterEnd"].forEach((id) => {
