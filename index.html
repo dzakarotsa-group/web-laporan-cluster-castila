@@ -1170,7 +1170,7 @@
         addMiniKpi(kpis, "CPL", data.available ? formatMoney(data.cpl) : "—", true);
         card.append(kpis);
 
-        card.append(createElement("div", "mini-section-title", "Pengeluaran per advertiser"));
+        card.append(createElement("div", "mini-section-title", "Pengeluaran per Marketing"));
         if (!data.available) {
           const message = key === "custom"
             ? "Data Ads untuk rentang pilihan belum tersedia karena spreadsheet rekap tidak menyediakan data harian."
