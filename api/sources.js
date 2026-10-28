@@ -1,6 +1,7 @@
 const {
   getSources,
   getMarketingPeople,
+  getTeamSheets,
   requireAdmin,
   saveDashboardSettings,
   setNoStore
@@ -34,13 +35,40 @@ function parseSource(source) {
   return { id: match[1], name, type };
 }
 
+function parseTeamSheet(entry) {
+  if (!entry || typeof entry !== "object") {
+    throw new Error("Setiap spreadsheet anggota harus memiliki divisi, nama, dan link.");
+  }
+  const division = typeof entry.division === "string" ? entry.division.trim() : "";
+  const name = typeof entry.name === "string" ? entry.name.trim() : "";
+  const url = typeof entry.url === "string" ? entry.url.trim() : "";
+  if (!division || division.length > 80 || !name || name.length > 80) {
+    throw new Error("Divisi dan nama anggota wajib diisi, maksimal 80 karakter.");
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error(`Link spreadsheet untuk "${name}" bukan URL yang valid.`);
+  }
+  const match = parsedUrl.hostname === "docs.google.com" &&
+    parsedUrl.pathname.match(/^\/spreadsheets\/d\/([A-Za-z0-9_-]+)/);
+  if (!match) {
+    throw new Error(`Link untuk "${name}" harus berupa link Google Sheets.`);
+  }
+  return { division, name, id: match[1] };
+}
+
 module.exports = async function handler(req, res) {
   setNoStore(res);
 
   if (req.method === "GET") {
     try {
-      const [sources, marketingPeople] = await Promise.all([getSources(), getMarketingPeople()]);
-      return res.status(200).json({ sources, marketingPeople });
+      const [sources, marketingPeople, teamSheets] = await Promise.all([
+        getSources(), getMarketingPeople(), getTeamSheets()
+      ]);
+      return res.status(200).json({ sources, marketingPeople, teamSheets });
     } catch (error) {
       console.error("Gagal membaca konfigurasi spreadsheet:", error);
       return res.status(502).json({ error: error.message });
@@ -55,12 +83,17 @@ module.exports = async function handler(req, res) {
 
   const input = req.body && req.body.sources;
   const peopleInput = req.body && req.body.marketingPeople;
+  const teamSheetsInput = req.body && req.body.teamSheets;
   if (!Array.isArray(input) || input.length < 1 || input.length > 20) {
     return res.status(400).json({ error: "Tambahkan antara 1 sampai 20 spreadsheet." });
   }
   if (peopleInput !== undefined &&
       (!Array.isArray(peopleInput) || peopleInput.length < 1 || peopleInput.length > 30)) {
     return res.status(400).json({ error: "Daftar marketing harus berisi 1 sampai 30 nama." });
+  }
+  if (teamSheetsInput !== undefined &&
+      (!Array.isArray(teamSheetsInput) || teamSheetsInput.length > 60)) {
+    return res.status(400).json({ error: "Pengaturan harus berisi maksimal 60 spreadsheet anggota." });
   }
 
   try {
@@ -71,6 +104,7 @@ module.exports = async function handler(req, res) {
       }
       return person.trim();
     });
+    const teamSheets = teamSheetsInput === undefined ? null : teamSheetsInput.map(parseTeamSheet);
     if (marketingPeople) {
       const uniquePeople = new Set(marketingPeople.map((person) => person.toLocaleLowerCase("id-ID")));
       if (uniquePeople.size !== marketingPeople.length) {
@@ -81,12 +115,26 @@ module.exports = async function handler(req, res) {
     if (uniqueIds.size !== sources.length) {
       return res.status(400).json({ error: "Link spreadsheet yang sama tidak boleh ditambahkan lebih dari sekali." });
     }
+    if (teamSheets) {
+      const teamKeys = new Set(teamSheets.map((entry) =>
+        `${entry.division.toLocaleLowerCase("id-ID")}\u0000${entry.name.toLocaleLowerCase("id-ID")}`
+      ));
+      if (teamKeys.size !== teamSheets.length) {
+        return res.status(400).json({ error: "Nama orang tidak boleh duplikat dalam divisi yang sama." });
+      }
+      const teamIds = new Set(teamSheets.map((entry) => entry.id));
+      if (teamIds.size !== teamSheets.length) {
+        return res.status(400).json({ error: "Spreadsheet orang yang sama tidak boleh dipakai lebih dari sekali." });
+      }
+    }
 
     const savedPeople = marketingPeople || await getMarketingPeople();
-    await saveDashboardSettings(sources, savedPeople);
+    const savedTeamSheets = teamSheets || await getTeamSheets();
+    await saveDashboardSettings(sources, savedPeople, savedTeamSheets);
     return res.status(200).json({
       sources,
-      marketingPeople: savedPeople
+      marketingPeople: savedPeople,
+      teamSheets: savedTeamSheets
     });
   } catch (error) {
     console.error("Gagal menyimpan konfigurasi spreadsheet:", error);
@@ -94,7 +142,11 @@ module.exports = async function handler(req, res) {
       error.message.startsWith("Nama") ||
       error.message.startsWith("Jenis") ||
       error.message.startsWith("Nama anggota") ||
-      error.message.startsWith("Setiap")
+      error.message.startsWith("Divisi") ||
+      error.message.startsWith("Link spreadsheet") ||
+      error.message.startsWith("Setiap") ||
+      error.message.startsWith("Nama orang") ||
+      error.message.startsWith("Spreadsheet orang")
       ? 400
       : 502;
     return res.status(status).json({ error: error.message });
