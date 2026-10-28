@@ -75,6 +75,7 @@ function onEdit(e) {
 - Agar detail booking menampilkan nama, sertakan kolom nama lead seperti `Nama Lead`, `Nama User`, `Nama Prospek`, atau `Nama Customer`.
 - Marketing menampilkan total gabungan serta rincian angka per orang untuk lead, follow-up, janji visit, visit terlaksana, dan booking/closing. Angka disajikan terpisah untuk hari ini, minggu ini, dan bulan ini; tabel juga merinci lead menurut platform per orang dan total.
 - Angka booking dapat diklik untuk membuka daftar nama lead, tanggal booking, platform, dan nama marketing. Detail ini bersifat publik karena dashboard tidak mewajibkan login pengunjung; nomor telepon dan domisili tidak ditampilkan.
+- Nama Marketing pada tabel dapat diklik untuk membuka spreadsheet orang tersebut di dalam dashboard. Tampilan spreadsheet ini publik dan dapat memperlihatkan semua kolom/tab yang diizinkan pada link Google Sheets, termasuk nomor telepon atau data lain. Jangan gunakan tautan publik untuk data yang tidak boleh dibagikan; Ads/Advertiser dan Konten belum memiliki tampilan detail klik pada tahap ini.
 - Jika belum ada spreadsheet Marketing per orang yang tersimpan, dashboard sementara memakai spreadsheet jenis `Daftar lead` lama. Saat spreadsheet per orang ditambahkan, sumber lama tersebut tidak digabung agar data tidak terhitung ganda.
 - Link spreadsheet harus dapat dibaca publik oleh siapa pun yang memiliki link. Data yang bersifat privat memerlukan integrasi autentikasi Google dan tidak didukung oleh ekspor CSV publik ini.
 - Sumber rekap dengan tanggal periode yang sama dijumlahkan. Rekap dengan rentang tanggal berbeda tidak dijumlahkan untuk periode tersebut.
@@ -82,6 +83,7 @@ function onEdit(e) {
 - Dashboard menampilkan agregat data dan nama marketing. Nama lead hanya ditampilkan pada detail booking; nomor telepon dan domisili tidak diambil untuk ditampilkan.
 - Dashboard Marketing menampilkan jumlah lead, follow-up, janji visit, visit terlaksana, dan booking/closing per orang serta total untuk hari ini, minggu berjalan (Senin sampai hari ini), serta bulan berjalan.
 - Halaman utama menampilkan total Marketing dan tabel angka per orang untuk setiap periode; klik angka booking untuk melihat detail booking. Biaya, leads iklan, dan CPL hanya ditampilkan pada bagian Ads.
+- Filter tanggal **Dari tanggal – Sampai tanggal** menambahkan kartu Rentang Pilihan pada laporan Marketing, termasuk rincian metrik aktivitas yang tanggalnya berada di dalam rentang tersebut. Kartu Hari Ini, Minggu Ini, dan Bulan Ini tetap tersedia. Data Ads untuk rentang pilihan belum dihitung karena sheet rekap Ads saat ini tidak menyediakan data harian.
 - Dashboard Ads menggunakan tabel Ads pada spreadsheet rekap untuk periode berjalan. Jika rentang tanggal tabel Ads tidak cocok dengan periode yang sedang berjalan, nilai ditandai belum tersedia daripada menampilkan angka dari periode yang keliru.
 - Data dimuat ulang otomatis setiap 5 menit. Pengeluaran CPL dihitung sebagai total pengeluaran iklan dibagi total leads iklan.
 
