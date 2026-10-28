@@ -653,12 +653,13 @@
     function automaticPeriods(now = new Date()) {
       const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
       const weekStart = new Date(today);
-      const mondayOffset = (today.getUTCDay() + 6) % 7;
-      weekStart.setUTCDate(weekStart.getUTCDate() - mondayOffset);
+      weekStart.setUTCDate(weekStart.getUTCDate() - today.getUTCDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
       const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
       return {
         day: { start: today, end: today },
-        week: { start: weekStart, end: today },
+        week: { start: weekStart, end: weekEnd },
         month: { start: monthStart, end: today }
       };
     }
