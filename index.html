@@ -303,7 +303,7 @@
       { key: "week", label: "Minggu Ini" },
       { key: "month", label: "Bulan Ini" }
     ];
-    const state = { summary: [], leads: [], leadsReady: false, lastUpdated: null };
+    const state = { summary: [], leads: [], leadsReady: false, adsRecords: [], adsReady: false, lastUpdated: null };
     let configuredSources = [];
     let configuredMarketingPeople = [];
     let configuredTeamSheets = [];
@@ -603,6 +603,49 @@
       }
       if (!records.length) {
         throw new Error("Header ditemukan, tetapi tidak ada tanggal lead yang terbaca. Periksa format tanggal di sheet.");
+      }
+      return records;
+    }
+
+    function parseAdsRecords(text) {
+      const rows = parseCsv(text);
+      const aliases = {
+        date: ["Tanggal", "Date", "Tanggal Iklan", "Tanggal Ads"],
+        name: ["Nama Sales", "Nama Advertiser", "Advertiser", "Nama Marketing", "Nama"],
+        spend: ["Spend", "Total Biaya", "Biaya", "Pengeluaran", "Amount Spent"],
+        leads: ["Leads", "Lead", "Leads Masuk", "Lead Masuk", "Hasil Leads"]
+      };
+      const headerRowIndex = rows.slice(0, 20).findIndex((row) => {
+        const headers = row.map(normalize);
+        return aliases.date.some((alias) => headers.includes(normalize(alias))) &&
+          aliases.name.some((alias) => headers.includes(normalize(alias))) &&
+          aliases.spend.some((alias) => headers.includes(normalize(alias))) &&
+          aliases.leads.some((alias) => headers.includes(normalize(alias)));
+      });
+      if (headerRowIndex < 0) {
+        throw new Error("Header Ads tidak ditemukan. Pastikan sheet memiliki kolom Tanggal, Nama Sales, Spend, dan Leads.");
+      }
+
+      const headers = rows[headerRowIndex].map(normalize);
+      const indexOfAny = (names) => headers.findIndex((header) => names.some((name) => normalize(name) === header));
+      const dateIndex = indexOfAny(aliases.date);
+      const nameIndex = indexOfAny(aliases.name);
+      const spendIndex = indexOfAny(aliases.spend);
+      const leadsIndex = indexOfAny(aliases.leads);
+      const records = [];
+      rows.slice(headerRowIndex + 1).forEach((row) => {
+        const date = parseDate(row[dateIndex]);
+        const name = String(row[nameIndex] || "").trim();
+        if (!date || !name || normalize(name) === "total") return;
+        records.push({
+          date,
+          name,
+          spend: numeric(row[spendIndex]),
+          leads: numeric(row[leadsIndex])
+        });
+      });
+      if (!records.length) {
+        throw new Error("Header Ads ditemukan, tetapi tidak ada data bertanggal yang terbaca.");
       }
       return records;
     }
@@ -983,6 +1026,27 @@
     }
 
     function matchingAdsPeriod(key, range) {
+      if (state.adsReady) {
+        const people = new Map();
+        state.adsRecords.filter((record) => inPeriod(record.date, range)).forEach((record) => {
+          const keyName = canonicalName(record.name);
+          if (!people.has(keyName)) people.set(keyName, { name: record.name, leads: 0, spend: 0 });
+          const person = people.get(keyName);
+          person.leads += record.leads;
+          person.spend += record.spend;
+        });
+        const ads = [...people.values()];
+        const leads = ads.reduce((sum, item) => sum + item.leads, 0);
+        const spend = ads.reduce((sum, item) => sum + item.spend, 0);
+        return {
+          available: true,
+          people: ads.map((item) => ({ ...item, cpl: item.leads > 0 ? item.spend / item.leads : 0 }))
+            .sort((a, b) => b.spend - a.spend || a.name.localeCompare(b.name, "id")),
+          leads,
+          spend,
+          cpl: leads > 0 ? spend / leads : 0
+        };
+      }
       if (key === "custom") {
         return { available: false, people: [], leads: 0, spend: 0, cpl: 0 };
       }
@@ -1253,10 +1317,25 @@
           }
         }))
         : [];
-      const allResults = [...results, ...personalLeadResults];
+      const adsTeamSheets = configuredTeamSheets.filter((entry) => normalize(entry.division) === "ads");
+      const adsResults = await Promise.all(adsTeamSheets.map(async (entry) => {
+        const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "ads-daily" };
+        try {
+          const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+          const response = await fetch(url, { cache: "no-store" });
+          if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
+          return { source, data: parseAdsRecords(await response.text()), error: null };
+        } catch (error) {
+          return { source, data: null, error };
+        }
+      }));
+      const allResults = [...results, ...personalLeadResults, ...adsResults];
 
       state.sourceResults = results;
       state.summary = results.filter((result) => result.source.type === "summary" && !result.error);
+      const successfulAdsResults = adsResults.filter((result) => !result.error);
+      state.adsReady = successfulAdsResults.length > 0;
+      state.adsRecords = successfulAdsResults.flatMap((result) => result.data);
       const leadResults = (usePersonalMarketingSheets ? personalLeadResults : results)
         .filter((result) => result.source.type === "leads" || result.source.type === "person-leads")
         .filter((result) => !result.error);
