@@ -86,6 +86,7 @@
     .live-badge { border-radius: 999px; padding: 5px 8px; color: #167c69; background: #e9f8f3; font-size: 9px; font-weight: 850; letter-spacing: .04em; white-space: nowrap; text-transform: uppercase; }
     .period-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
     .period-kpis.ads-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .period-kpis.marketing-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .mini-kpi { min-width: 0; border-radius: 11px; padding: 11px; background: #f5f7fb; }
     .mini-kpi-label { display: block; min-height: 25px; color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.3; }
     .mini-kpi-value { display: block; margin-top: 5px; overflow-wrap: anywhere; color: #22334f; font-size: clamp(16px, 1.7vw, 22px); font-weight: 850; letter-spacing: -.04em; }
@@ -101,9 +102,6 @@
     .source-tags { display: flex; flex-wrap: wrap; gap: 5px; }
     .source-tag { border: 1px solid #e8edf5; border-radius: 999px; padding: 5px 7px; color: #5c6b81; background: #fafbfe; font-size: 9px; }
     .source-tag strong { margin-left: 3px; color: #263a5c; }
-    .ads-person-list { display: grid; gap: 7px; }
-    .ads-person-row { display: grid; grid-template-columns: minmax(48px, 1fr) auto auto; gap: 9px; border-top: 1px solid #eff2f6; padding-top: 7px; color: #58667c; font-size: 10px; }
-    .ads-person-row strong { color: #293852; font-weight: 800; }
     .person-table-wrap { overflow-x: auto; margin: 0 -4px; }
     .person-table { width: 100%; border-collapse: collapse; white-space: nowrap; }
     .person-table th { padding: 0 7px 8px; color: #8994a6; font-size: 9px; font-weight: 800; text-align: right; text-transform: uppercase; }
@@ -111,14 +109,20 @@
     .person-table td { padding: 8px 7px; border-top: 1px solid #eff2f6; color: #52617a; font-size: 10px; text-align: right; }
     .person-table td:first-child { color: #293852; font-weight: 750; }
     .person-table .total-row td { color: #22334f; font-weight: 850; }
-    .table-total-note { margin: 7px 0 0; color: #8994a6; font-size: 9px; line-height: 1.4; }
-    .person-source-list { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px; min-width: 180px; white-space: normal; }
-    .person-source-tag { border-radius: 999px; padding: 4px 6px; color: #51627b; background: #f1f4fa; font-size: 9px; }
-    .person-source-tag strong { margin-left: 3px; color: #263a5c; }
+    .booking-count-button { border: 0; padding: 2px 6px; border-radius: 6px; color: #244b9b; background: #edf2ff; font: inherit; font-weight: 850; text-decoration: underline; text-underline-offset: 2px; }
+    .booking-count-button:hover { background: #dfe8ff; }
+    .booking-kpi-button { display: block; margin-top: 5px; border: 0; padding: 0; color: #244b9b; background: transparent; font-size: clamp(16px, 1.7vw, 22px); font-weight: 850; letter-spacing: -.04em; text-decoration: underline; text-underline-offset: 3px; }
+    .booking-detail-list { display: grid; gap: 8px; }
+    .booking-detail-item { display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: #52617a; font-size: 12px; }
+    .booking-detail-item strong { color: #293852; font-size: 13px; }
+    .booking-detail-meta { color: #718096; font-size: 11px; }
+    .ads-person-list { display: grid; gap: 7px; }
+    .ads-person-row { display: grid; grid-template-columns: minmax(48px, 1fr) auto auto; gap: 9px; border-top: 1px solid #eff2f6; padding-top: 7px; color: #58667c; font-size: 10px; }
+    .ads-person-row strong { color: #293852; font-weight: 800; }
     .empty-state { padding: 13px 4px; color: #8994a6; font-size: 11px; line-height: 1.5; text-align: center; }
     .admin-subsection { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 17px; }
-    .admin-person-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .admin-person-row { display: flex; align-items: center; gap: 8px; }
+    .admin-person-list { display: grid; gap: 8px; }
+    .admin-person-row { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(130px, .8fr) minmax(220px, 1.5fr) auto; align-items: end; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfe; }
     .admin-person-row .form-field { flex: 1; }
     .admin-person-row .danger-button { padding: 9px 10px; }
     h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
@@ -146,6 +150,8 @@
       .period-card { padding: 15px; }
       .admin-person-list { grid-template-columns: 1fr; }
       .period-kpis.ads-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .period-kpis.marketing-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .booking-dialog { width: min(520px, calc(100% - 24px)); }
     }
   </style>
 </head>
@@ -182,16 +188,17 @@
       </form>
       <div class="admin-editor" id="adminEditor" hidden>
         <div class="admin-source-list" id="adminSourceList"></div>
-        <p class="admin-note">Pilih “Rekap metrik” untuk spreadsheet yang memiliki ringkasan sales dan iklan. Pilih “Daftar lead” untuk spreadsheet detail leads beserta tanggal follow-up. Link harus dapat dibaca publik.</p>
+        <p class="admin-note">Spreadsheet umum tetap digunakan untuk laporan Ads. Link harus dapat dibaca publik.</p>
         <div class="admin-subsection">
           <div class="admin-title-row">
             <div>
-              <h2>Anggota Marketing</h2>
-              <p class="panel-subtitle">Tambah atau kurangi anggota yang ditampilkan pada laporan.</p>
+              <h2>Spreadsheet per orang</h2>
+              <p class="panel-subtitle">Atur divisi, nama anggota, dan spreadsheet detail masing-masing.</p>
             </div>
-            <button class="secondary-button" id="addMarketingPerson" type="button">+ Tambah anggota</button>
+            <button class="secondary-button" id="addMarketingPerson" type="button">+ Tambah orang</button>
           </div>
           <div class="admin-person-list" id="adminPersonList"></div>
+          <p class="admin-note">Marketing memakai sheet satu baris per lead dengan tanggal aktivitas tersendiri. Kolom yang dikenali: tanggal lead, sumber/platform, FU 1–FU 8, janji/rencana visit, visit terlaksana, dan booking/closing.</p>
         </div>
         <div class="admin-actions">
           <button class="secondary-button" id="addSourceButton" type="button">+ Tambah spreadsheet</button>
@@ -202,6 +209,17 @@
         </div>
       </div>
       <p class="admin-message" id="adminMessage" role="status" aria-live="polite"></p>
+    </dialog>
+
+    <dialog class="card admin-panel booking-dialog" id="bookingDialog" aria-labelledby="bookingDialogTitle">
+      <div class="admin-title-row">
+        <div>
+          <h2 id="bookingDialogTitle">Detail booking</h2>
+          <p class="panel-subtitle" id="bookingDialogSubtitle">Detail nama lead ini dapat dilihat oleh pengunjung dashboard.</p>
+        </div>
+        <button class="secondary-button" id="closeBookingDialog" type="button">Tutup</button>
+      </div>
+      <div class="booking-detail-list" id="bookingDetailList"></div>
     </dialog>
 
     <section class="source-status" id="sourceStatus" aria-label="Status sumber data"></section>
@@ -237,8 +255,8 @@
         <div class="period-grid" id="adsPeriods"></div>
       </section>
 
-      <p class="footer">Data diperbarui setiap 5 menit dan dapat dimuat ulang dengan tombol di atas. Marketing dihitung dari tanggal lead dan tanggal follow-up. Data iklan mengikuti periode rekap yang tersedia.</p>
-      <p class="privacy-note">Dashboard hanya menampilkan data agregat. Nama lead, nomor telepon, dan domisili tidak ditampilkan.</p>
+      <p class="footer">Data diperbarui setiap 5 menit dan dapat dimuat ulang dengan tombol di atas. Marketing dihitung dari tanggal masing-masing aktivitas; Ads mengikuti periode rekap yang tersedia.</p>
+      <p class="privacy-note">Laporan menampilkan data agregat. Nama lead hanya ditampilkan pada detail booking yang dapat dilihat semua pengunjung; nomor telepon dan domisili tidak ditampilkan.</p>
     </section>
   </main>
 
@@ -251,6 +269,7 @@
     const state = { summary: [], leads: [], leadsReady: false, lastUpdated: null };
     let configuredSources = [];
     let configuredMarketingPeople = [];
+    let configuredTeamSheets = [];
     let loadInProgress = false;
     const numberFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
     const moneyFormat = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
@@ -317,11 +336,17 @@
     }
 
     function parseDate(value) {
-      const text = String(value || "").trim();
+      const text = String(value || "").trim().split(/[ T]/)[0];
       let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
       if (match) return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
       match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (match) return new Date(Date.UTC(Number(match[3]), Number(match[2]) - 1, Number(match[1])));
+      if (match) {
+        const first = Number(match[1]);
+        const second = Number(match[2]);
+        const month = first > 12 ? second : second > 12 ? first : second;
+        const day = first > 12 ? first : second > 12 ? second : first;
+        return new Date(Date.UTC(Number(match[3]), month - 1, day));
+      }
       return null;
     }
 
@@ -442,18 +467,28 @@
       return { day, week, month, weeklyHistory };
     }
 
-    function parseLeadRecords(text) {
+    function parseLeadRecords(text, personName = "") {
       const rows = parseCsv(text);
       if (rows.length < 2) throw new Error("Daftar lead tidak berisi data.");
       const headers = rows[0].map((header) => normalize(header));
-      const indexOf = (name) => headers.indexOf(normalize(name));
-      const dateIndex = indexOf("Column 1");
-      const salesIndex = indexOf("Nama Sales");
-      const sourceIndex = indexOf("Sumber Leads");
-      if (dateIndex < 0 || salesIndex < 0 || sourceIndex < 0) {
-        throw new Error("Kolom tanggal, sales, atau sumber lead tidak ditemukan di spreadsheet detail.");
+      const indexOfAny = (names) => {
+        for (const name of names) {
+          const index = headers.indexOf(normalize(name));
+          if (index >= 0) return index;
+        }
+        return -1;
+      };
+      const dateIndex = indexOfAny(["Column 1", "Tanggal Lead", "Tanggal Masuk", "Tanggal", "Lead Date"]);
+      const salesIndex = indexOfAny(["Nama Sales", "Nama Marketing", "Marketing"]);
+      const leadNameIndex = indexOfAny(["Nama Lead", "Nama Prospek", "Nama Customer", "Nama Konsumen", "Customer", "Prospek"]);
+      const sourceIndex = indexOfAny(["Sumber Leads", "Sumber Lead", "Platform", "Asal Lead"]);
+      const plannedVisitIndex = indexOfAny(["Janji Visit", "Tanggal Janji Visit", "Rencana Visit", "Tanggal Rencana Visit"]);
+      const visitIndex = indexOfAny(["Visit Terlaksana", "Tanggal Visit Terlaksana", "Tanggal Visit", "Visit"]);
+      const bookingIndex = indexOfAny(["Tanggal Booking", "Booking", "Tanggal Closing", "Closing", "Booking/Closing", "Booking / Closing"]);
+      if (dateIndex < 0 || sourceIndex < 0 || (salesIndex < 0 && !personName)) {
+        throw new Error("Kolom tanggal lead dan sumber/platform wajib ada; kolom sales wajib ada jika sheet dipakai bersama.");
       }
-      const fuIndexes = headers.map((header, index) => /^fu \d+$/.test(header) ? index : -1).filter((index) => index >= 0);
+      const fuIndexes = headers.map((header, index) => /^(?:fu|follow up) \d+$/.test(header) ? index : -1).filter((index) => index >= 0);
       const records = [];
       for (const row of rows.slice(1)) {
         const date = parseDate(row[dateIndex]);
@@ -465,9 +500,13 @@
         });
         records.push({
           date,
-          sales: String(row[salesIndex] || "").trim() || "Tidak diketahui",
+          sales: personName || String(row[salesIndex] || "").trim() || "Tidak diketahui",
+          leadName: leadNameIndex >= 0 ? String(row[leadNameIndex] || "").trim() : "",
           source: String(row[sourceIndex] || "").trim() || "Tidak diketahui",
-          followUpDates
+          followUpDates,
+          plannedVisitDate: plannedVisitIndex >= 0 ? parseDate(row[plannedVisitIndex]) : null,
+          visitDate: visitIndex >= 0 ? parseDate(row[visitIndex]) : null,
+          bookingDate: bookingIndex >= 0 ? parseDate(row[bookingIndex]) : null
         });
       }
       return records;
@@ -505,13 +544,20 @@
         name,
         leads: 0,
         followUps: 0,
+        plannedVisits: 0,
+        visits: 0,
+        bookings: 0,
         sources: {}
       }));
       const peopleByName = new Map(people.map((person) => [person.name, person]));
       const sourceCounts = new Map();
-      const other = { name: "Lainnya", leads: 0, followUps: 0, sources: {} };
+      const other = { name: "Lainnya", leads: 0, followUps: 0, plannedVisits: 0, visits: 0, bookings: 0, sources: {} };
       let leads = 0;
       let followUps = 0;
+      let plannedVisits = 0;
+      let visits = 0;
+      let bookings = 0;
+      const bookingDetails = [];
 
       records.forEach((record) => {
         const person = peopleByName.get(personFor(record.sales));
@@ -530,13 +576,45 @@
           if (person) person.followUps += 1;
           else other.followUps += 1;
         });
+        if (inPeriod(record.plannedVisitDate, period)) {
+          plannedVisits += 1;
+          if (person) person.plannedVisits += 1;
+          else other.plannedVisits += 1;
+        }
+        if (inPeriod(record.visitDate, period)) {
+          visits += 1;
+          if (person) person.visits += 1;
+          else other.visits += 1;
+        }
+        if (inPeriod(record.bookingDate, period)) {
+          bookings += 1;
+          if (person) person.bookings += 1;
+          else other.bookings += 1;
+          bookingDetails.push({
+            name: record.leadName || "Nama tidak tersedia",
+            date: record.bookingDate,
+            source: record.source || "Tidak diketahui",
+            marketing: record.sales || "Tidak diketahui"
+          });
+          if (person) {
+            if (!person.bookingDetails) person.bookingDetails = [];
+            person.bookingDetails.push(bookingDetails[bookingDetails.length - 1]);
+          } else {
+            if (!other.bookingDetails) other.bookingDetails = [];
+            other.bookingDetails.push(bookingDetails[bookingDetails.length - 1]);
+          }
+        }
       });
 
-      if (other.leads || other.followUps) people.push(other);
+      if (other.leads || other.followUps || other.plannedVisits || other.visits || other.bookings) people.push(other);
 
       return {
         leads,
         followUps,
+        plannedVisits,
+        visits,
+        bookings,
+        bookingDetails,
         people,
         sources: [...sourceCounts.entries()]
           .map(([name, count]) => ({ name, count }))
@@ -599,6 +677,24 @@
       container.append(item);
     }
 
+    function addBookingKpi(container, value, details, periodLabel) {
+      const item = createElement("div", "mini-kpi");
+      item.append(createElement("span", "mini-kpi-label", "Booking/closing"));
+      if (!details) {
+        item.append(createElement("strong", "mini-kpi-value", "—"));
+      } else {
+        const button = createElement("button", "booking-kpi-button", formatCount(value));
+        button.type = "button";
+        button.disabled = value === 0;
+        button.setAttribute("aria-label", `Lihat ${value} detail booking ${periodLabel}`);
+        button.addEventListener("click", () =>
+          renderBookingDetails(details, "Semua Marketing", periodLabel)
+        );
+        item.append(button);
+      }
+      container.append(item);
+    }
+
     function renderMiniChart(container, items, metric, isAds = false, formatter = formatCount) {
       container.replaceChildren();
       const sorted = [...items].sort((a, b) => (b[metric] || 0) - (a[metric] || 0));
@@ -626,12 +722,128 @@
         container.append(createElement("span", "empty-state", "Belum ada lead masuk."));
         return;
       }
-      sources.slice(0, 6).forEach((source) => {
+      sources.forEach((source) => {
         const tag = createElement("span", "source-tag");
         tag.append(document.createTextNode(`${source.name} `));
         tag.append(createElement("strong", "", formatCount(source.count)));
         container.append(tag);
       });
+    }
+
+    function renderBookingDetails(details, personName, periodLabel) {
+      const dialog = document.getElementById("bookingDialog");
+      document.getElementById("bookingDialogTitle").textContent = `Detail booking · ${personName}`;
+      document.getElementById("bookingDialogSubtitle").textContent =
+        `${periodLabel} · ${formatCount(details.length)} booking`;
+      const list = document.getElementById("bookingDetailList");
+      list.replaceChildren();
+      if (!details.length) {
+        list.append(createElement("div", "empty-state", "Belum ada booking pada periode ini."));
+      } else {
+        [...details].sort((a, b) => b.date - a.date).forEach((detail) => {
+          const item = createElement("article", "booking-detail-item");
+          item.append(createElement("strong", "", detail.name));
+          item.append(createElement("span", "booking-detail-meta", `Tanggal: ${dateText(detail.date)}`));
+          item.append(createElement("span", "booking-detail-meta", `Platform: ${detail.source} · Marketing: ${detail.marketing}`));
+          list.append(item);
+        });
+      }
+      if (!dialog.open) dialog.showModal();
+    }
+
+    function renderMarketingPeopleTable(container, marketing, periodLabel) {
+      const tableWrap = createElement("div", "person-table-wrap");
+      const table = createElement("table", "person-table");
+      const heading = document.createElement("tr");
+      ["Marketing", "Lead", "Follow-up", "Janji visit", "Visit terlaksana", "Booking", "Platform · lead"].forEach((label) => {
+        heading.append(createElement("th", "", label));
+      });
+      const thead = document.createElement("thead");
+      thead.append(heading);
+      table.append(thead);
+
+      const people = marketing ? marketing.people : [];
+      const totals = { leads: 0, followUps: 0, plannedVisits: 0, visits: 0, bookings: 0, sources: {}, bookingDetails: [] };
+      const tbody = document.createElement("tbody");
+      people.forEach((person) => {
+        totals.leads += person.leads;
+        totals.followUps += person.followUps;
+        totals.plannedVisits += person.plannedVisits || 0;
+        totals.visits += person.visits || 0;
+        totals.bookings += person.bookings || 0;
+        totals.bookingDetails.push(...(person.bookingDetails || []));
+        Object.entries(person.sources || {}).forEach(([source, count]) => {
+          totals.sources[source] = (totals.sources[source] || 0) + count;
+        });
+
+        const row = document.createElement("tr");
+        row.append(createElement("td", "", person.name));
+        row.append(createElement("td", "", formatCount(person.leads)));
+        row.append(createElement("td", "", formatCount(person.followUps)));
+        row.append(createElement("td", "", formatCount(person.plannedVisits)));
+        row.append(createElement("td", "", formatCount(person.visits)));
+        const bookingCell = document.createElement("td");
+        if (person.bookings > 0) {
+          const button = createElement("button", "booking-count-button", formatCount(person.bookings));
+          button.type = "button";
+          button.setAttribute("aria-label", `Lihat ${person.bookings} detail booking ${person.name}`);
+          button.addEventListener("click", () =>
+            renderBookingDetails(person.bookingDetails || [], person.name, periodLabel)
+          );
+          bookingCell.append(button);
+        } else {
+          bookingCell.textContent = "0";
+        }
+        row.append(bookingCell);
+        const sourceCell = document.createElement("td");
+        const sourceTags = createElement("div", "source-tags");
+        renderSourceTags(sourceTags, Object.entries(person.sources || {})
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count));
+        sourceCell.append(sourceTags);
+        row.append(sourceCell);
+        tbody.append(row);
+      });
+
+      if (people.length) {
+        const totalRow = createElement("tr", "total-row");
+        totalRow.append(createElement("td", "", "Total"));
+        totalRow.append(createElement("td", "", formatCount(totals.leads)));
+        totalRow.append(createElement("td", "", formatCount(totals.followUps)));
+        totalRow.append(createElement("td", "", formatCount(totals.plannedVisits)));
+        totalRow.append(createElement("td", "", formatCount(totals.visits)));
+        const totalBookingCell = document.createElement("td");
+        if (totals.bookings > 0) {
+          const button = createElement("button", "booking-count-button", formatCount(totals.bookings));
+          button.type = "button";
+          button.setAttribute("aria-label", `Lihat ${totals.bookings} detail seluruh booking`);
+          button.addEventListener("click", () =>
+            renderBookingDetails(totals.bookingDetails, "Semua Marketing", periodLabel)
+          );
+          totalBookingCell.append(button);
+        } else {
+          totalBookingCell.textContent = "0";
+        }
+        totalRow.append(totalBookingCell);
+        const totalSourceCell = document.createElement("td");
+        const totalSourceTags = createElement("div", "source-tags");
+        renderSourceTags(totalSourceTags, Object.entries(totals.sources)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count));
+        totalSourceCell.append(totalSourceTags);
+        totalRow.append(totalSourceCell);
+        tbody.append(totalRow);
+      } else {
+        const row = document.createElement("tr");
+        const cell = createElement("td", "empty-state", marketing ? "Belum ada data Marketing." : "Data belum tersedia.");
+        cell.colSpan = 7;
+        row.append(cell);
+        tbody.append(row);
+      }
+
+      table.append(tbody);
+      tableWrap.append(table);
+      container.append(tableWrap);
     }
 
     function marketingPeriodData(range) {
@@ -685,77 +897,6 @@
       };
     }
 
-    function renderMarketingPeopleTable(container, marketing) {
-      const tableWrap = createElement("div", "person-table-wrap");
-      const table = createElement("table", "person-table");
-      const thead = document.createElement("thead");
-      const heading = document.createElement("tr");
-      ["Marketing", "Lead masuk", "Follow-up", "Asal lead · jumlah"].forEach((label) => {
-        heading.append(createElement("th", "", label));
-      });
-      thead.append(heading);
-      table.append(thead);
-
-      const tbody = document.createElement("tbody");
-      const people = marketing ? marketing.people : configuredMarketingPeople.map((name) => ({
-        name, leads: 0, followUps: 0, sources: {}
-      }));
-      let totalLeads = 0;
-      let totalFollowUps = 0;
-      const totalSources = {};
-
-      people.forEach((person) => {
-        totalLeads += person.leads;
-        totalFollowUps += person.followUps;
-        Object.entries(person.sources || {}).forEach(([source, count]) => {
-          totalSources[source] = (totalSources[source] || 0) + count;
-        });
-        const row = document.createElement("tr");
-        row.append(createElement("td", "", person.name));
-        row.append(createElement("td", "", marketing ? formatCount(person.leads) : "—"));
-        row.append(createElement("td", "", marketing ? formatCount(person.followUps) : "—"));
-        const sourceCell = createElement("td", "");
-        const sourceList = createElement("div", "person-source-list");
-        const personSources = Object.entries(person.sources || {}).sort((a, b) => b[1] - a[1]);
-        if (personSources.length) {
-          personSources.forEach(([source, count]) => {
-            const tag = createElement("span", "person-source-tag");
-            tag.append(document.createTextNode(`${source} `));
-            tag.append(createElement("strong", "", formatCount(count)));
-            sourceList.append(tag);
-          });
-        } else {
-          sourceList.append(createElement("span", "table-total-note", marketing ? "Belum ada lead" : "Data belum tersedia"));
-        }
-        sourceCell.append(sourceList);
-        row.append(sourceCell);
-        tbody.append(row);
-      });
-
-      const totalRow = createElement("tr", "total-row");
-      totalRow.append(createElement("td", "", "Total"));
-      totalRow.append(createElement("td", "", marketing ? formatCount(totalLeads) : "—"));
-      totalRow.append(createElement("td", "", marketing ? formatCount(totalFollowUps) : "—"));
-      const totalSourceCell = createElement("td", "");
-      const totalSourceList = createElement("div", "person-source-list");
-      Object.entries(totalSources).sort((a, b) => b[1] - a[1]).forEach(([source, count]) => {
-        const tag = createElement("span", "person-source-tag");
-        tag.append(document.createTextNode(`${source} `));
-        tag.append(createElement("strong", "", formatCount(count)));
-        totalSourceList.append(tag);
-      });
-      if (!Object.keys(totalSources).length) {
-        totalSourceList.append(createElement("span", "table-total-note", marketing ? "Belum ada lead" : "Data belum tersedia"));
-      }
-      totalSourceCell.append(totalSourceList);
-      totalRow.append(totalSourceCell);
-      tbody.append(totalRow);
-      table.append(tbody);
-      tableWrap.append(table);
-      container.append(tableWrap);
-      container.append(createElement("p", "table-total-note", "Jumlah lead per sumber dihitung dari spreadsheet daftar lead. Data Ads ditampilkan terpisah di bagian Ads."));
-    }
-
     function renderMarketingCards(periodRanges) {
       const container = document.getElementById("marketingPeriods");
       container.replaceChildren();
@@ -763,15 +904,18 @@
         const range = periodRanges[key];
         const data = marketingPeriodData(range);
         const card = periodCard(label, range);
-        const kpis = createElement("div", "period-kpis");
+        const kpis = createElement("div", "period-kpis marketing-kpis");
         addMiniKpi(kpis, "Lead masuk", data ? formatCount(data.leads) : "—");
         addMiniKpi(kpis, "Follow-up", data ? formatCount(data.followUps) : "—");
+        addMiniKpi(kpis, "Janji visit", data ? formatCount(data.plannedVisits) : "—");
+        addMiniKpi(kpis, "Visit terlaksana", data ? formatCount(data.visits) : "—");
+        addBookingKpi(kpis, data ? data.bookings : 0, data ? data.bookingDetails : null, label);
         card.append(kpis);
 
-        card.append(createElement("div", "mini-section-title", "Semua data per marketing"));
-        renderMarketingPeopleTable(card, data);
+        card.append(createElement("div", "mini-section-title", "Rincian angka per orang"));
+        renderMarketingPeopleTable(card, data, label);
 
-        card.append(createElement("div", "mini-section-title", "Sumber lead"));
+        card.append(createElement("div", "mini-section-title", "Total lead per platform"));
         const sources = createElement("div", "source-tags");
         if (data) renderSourceTags(sources, data.sources);
         else sources.append(createElement("div", "empty-state", "Data belum tersedia."));
@@ -868,7 +1012,13 @@
       try {
         const config = await requestJson("/api/sources");
         configuredSources = config.sources;
-        configuredMarketingPeople = Array.isArray(config.marketingPeople)
+        configuredTeamSheets = Array.isArray(config.teamSheets) ? config.teamSheets : [];
+        const teamMarketingPeople = configuredTeamSheets
+          .filter((entry) => normalize(entry.division) === "marketing")
+          .map((entry) => entry.name);
+        configuredMarketingPeople = teamMarketingPeople.length
+          ? teamMarketingPeople
+          : Array.isArray(config.marketingPeople)
           ? config.marketingPeople
           : ["Anggi", "Nanik", "Anggia", "Laudia", "Nisa"];
       } catch (error) {
@@ -882,23 +1032,44 @@
         return;
       }
 
-      const results = await Promise.all(configuredSources.map(async (source) => {
+      const marketingTeamSheets = configuredTeamSheets.filter((entry) => normalize(entry.division) === "marketing");
+      const usePersonalMarketingSheets = marketingTeamSheets.length > 0;
+      const sourcesToLoad = usePersonalMarketingSheets
+        ? configuredSources.filter((source) => source.type !== "leads")
+        : configuredSources;
+      const results = await Promise.all(sourcesToLoad.map(async (source) => {
         try {
           return { source, data: await loadSource(source), error: null };
         } catch (error) {
           return { source, data: null, error };
         }
       }));
+      const personalLeadResults = usePersonalMarketingSheets
+        ? await Promise.all(marketingTeamSheets.map(async (entry) => {
+          const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "person-leads" };
+          try {
+            const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+            const response = await fetch(url, { cache: "no-store" });
+            if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
+            return { source, data: parseLeadRecords(await response.text(), entry.name), error: null };
+          } catch (error) {
+            return { source, data: null, error };
+          }
+        }))
+        : [];
+      const allResults = [...results, ...personalLeadResults];
 
       state.sourceResults = results;
       state.summary = results.filter((result) => result.source.type === "summary" && !result.error);
-      const leadResults = results.filter((result) => result.source.type === "leads" && !result.error);
+      const leadResults = (usePersonalMarketingSheets ? personalLeadResults : results)
+        .filter((result) => result.source.type === "leads" || result.source.type === "person-leads")
+        .filter((result) => !result.error);
       state.leadsReady = leadResults.length > 0;
       state.leads = leadResults.flatMap((result) => result.data);
       state.lastUpdated = new Date();
-      setSourceStatus(results);
+      setSourceStatus(allResults);
 
-      const failures = results.filter((result) => result.error);
+      const failures = allResults.filter((result) => result.error);
       if (failures.length) {
         errorBanner.textContent = failures.map(({ source, error }) => `${source.name}: ${error.message || "terjadi kesalahan saat mengambil data."}`).join(" ");
         errorBanner.classList.add("is-visible");
@@ -989,36 +1160,59 @@
       sources.forEach((source) => addAdminSourceRow(source));
     }
 
-    function addMarketingPersonRow(name = "") {
+    function addMarketingPersonRow(person = { division: "Marketing", name: "", id: "" }) {
       const row = createElement("div", "admin-person-row");
-      const label = createElement("label", "form-field", "Nama anggota");
+      const divisionLabel = createElement("label", "form-field", "Divisi");
+      const divisionSelect = document.createElement("select");
+      divisionSelect.dataset.field = "division";
+      ["Marketing", "Ads", "Konten"].forEach((division) => {
+        const option = document.createElement("option");
+        option.value = division;
+        option.textContent = division;
+        divisionSelect.append(option);
+      });
+      divisionSelect.value = person.division || "Marketing";
+      divisionLabel.append(divisionSelect);
+
+      const nameLabel = createElement("label", "form-field", "Nama orang");
       const input = document.createElement("input");
       input.type = "text";
       input.maxLength = 80;
       input.required = true;
       input.placeholder = "Contoh: Nisa";
-      input.value = name;
-      label.append(input);
+      input.value = person.name || "";
+      input.dataset.field = "name";
+      nameLabel.append(input);
+
+      const urlLabel = createElement("label", "form-field", "Link spreadsheet orang ini");
+      const urlInput = document.createElement("input");
+      urlInput.type = "url";
+      urlInput.required = true;
+      urlInput.placeholder = "https://docs.google.com/spreadsheets/d/...";
+      urlInput.value = person.id ? `https://docs.google.com/spreadsheets/d/${person.id}/edit` : "";
+      urlInput.dataset.field = "url";
+      urlLabel.append(urlInput);
+
       const remove = createElement("button", "danger-button", "Hapus");
       remove.type = "button";
-      remove.setAttribute("aria-label", `Hapus anggota ${name || "baru"}`);
+      remove.setAttribute("aria-label", `Hapus spreadsheet ${person.name || "anggota baru"}`);
       remove.addEventListener("click", () => row.remove());
-      row.append(label, remove);
+      row.append(divisionLabel, nameLabel, urlLabel, remove);
       document.getElementById("adminPersonList").append(row);
     }
 
-    function renderAdminPeople(people) {
+    function renderAdminPeople(teamSheets) {
       const list = document.getElementById("adminPersonList");
       list.replaceChildren();
-      people.forEach(addMarketingPersonRow);
+      teamSheets.forEach(addMarketingPersonRow);
     }
 
-    function showAdminEditor(sources, people) {
+    function showAdminEditor(sources, teamSheets) {
       document.getElementById("adminLogin").hidden = true;
       document.getElementById("adminEditor").hidden = false;
-      setAdminTitle("Pengaturan admin", "Kelola spreadsheet dan anggota Marketing.");
+      setAdminTitle("Pengaturan admin", "Kelola sumber umum dan spreadsheet per orang.");
       renderAdminSources(sources);
-      renderAdminPeople(people);
+      renderAdminPeople(teamSheets);
       setAdminMessage("");
     }
 
@@ -1038,7 +1232,7 @@
       setAdminTitle("Login Admin", "Masukkan password admin untuk melanjutkan.");
       try {
         const session = await requestJson("/api/admin/session");
-        if (session.authenticated) showAdminEditor(configuredSources, configuredMarketingPeople);
+        if (session.authenticated) showAdminEditor(configuredSources, configuredTeamSheets);
       } catch (error) {
         setAdminMessage(error.message);
       }
@@ -1063,7 +1257,12 @@
         const config = await requestJson("/api/sources");
         configuredSources = config.sources;
         configuredMarketingPeople = config.marketingPeople || configuredMarketingPeople;
-        showAdminEditor(configuredSources, configuredMarketingPeople);
+        configuredTeamSheets = config.teamSheets || [];
+        const teamMarketingPeople = configuredTeamSheets
+          .filter((entry) => normalize(entry.division) === "marketing")
+          .map((entry) => entry.name);
+        if (teamMarketingPeople.length) configuredMarketingPeople = teamMarketingPeople;
+        showAdminEditor(configuredSources, configuredTeamSheets);
       } catch (error) {
         setAdminMessage(error.message);
       }
@@ -1076,28 +1275,40 @@
         type: row.querySelector('[data-field="type"]').value,
         url: row.querySelector('[data-field="url"]').value.trim()
       }));
-      const marketingPeople = [...document.querySelectorAll(".admin-person-row input")]
-        .map((input) => input.value.trim());
+      const teamSheets = [...document.querySelectorAll(".admin-person-row")].map((row) => ({
+        division: row.querySelector('[data-field="division"]').value,
+        name: row.querySelector('[data-field="name"]').value.trim(),
+        url: row.querySelector('[data-field="url"]').value.trim()
+      }));
+      const marketingPeople = teamSheets
+        .filter((entry) => normalize(entry.division) === "marketing")
+        .map((entry) => entry.name);
+      if (!marketingPeople.length) marketingPeople.push(...configuredMarketingPeople);
       if (sources.some((source) => !source.name || !source.url)) {
         setAdminMessage("Lengkapi nama dan link untuk setiap spreadsheet.");
         return;
       }
+      if (teamSheets.some((entry) => !entry.division || !entry.name || !entry.url)) {
+        setAdminMessage("Lengkapi divisi, nama, dan link spreadsheet untuk setiap orang.");
+        return;
+      }
       if (!marketingPeople.length || marketingPeople.some((name) => !name)) {
-        setAdminMessage("Daftar anggota Marketing harus berisi minimal satu nama.");
+        setAdminMessage("Tambahkan minimal satu anggota Marketing dengan spreadsheetnya.");
         return;
       }
       button.disabled = true;
       try {
         const result = await requestJson("/api/sources", {
           method: "PUT",
-          body: JSON.stringify({ sources, marketingPeople })
+          body: JSON.stringify({ sources, marketingPeople, teamSheets })
         });
         configuredSources = result.sources;
         configuredMarketingPeople = result.marketingPeople;
+        configuredTeamSheets = result.teamSheets || [];
         setAdminMessage("Pengaturan tersimpan. Dashboard sedang memuat ulang data.", false);
         await loadData();
         renderAdminSources(configuredSources);
-        renderAdminPeople(configuredMarketingPeople);
+        renderAdminPeople(configuredTeamSheets);
       } catch (error) {
         setAdminMessage(error.message);
       } finally {
@@ -1129,6 +1340,7 @@
     document.getElementById("addMarketingPerson").addEventListener("click", () => addMarketingPersonRow());
     document.getElementById("saveSourcesButton").addEventListener("click", saveAdminSources);
     document.getElementById("adminLogout").addEventListener("click", logoutAdmin);
+    document.getElementById("closeBookingDialog").addEventListener("click", () => document.getElementById("bookingDialog").close());
     loadData();
     window.setInterval(loadData, 5 * 60 * 1000);
   </script>
