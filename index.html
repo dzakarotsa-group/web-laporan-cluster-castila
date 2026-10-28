@@ -80,6 +80,7 @@
     .division-heading h2 { font-size: 20px; }
     .period-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
     .period-card { min-width: 0; padding: 17px; }
+    .period-card.custom-period-card { grid-column: 1 / -1; }
     .date-filter { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 14px; }
     .date-filter .form-field { min-width: 150px; }
     .date-filter-actions { display: flex; gap: 7px; }
@@ -1028,12 +1029,13 @@
       const container = document.getElementById("marketingPeriods");
       container.replaceChildren();
       const periods = selectedDateRange
-        ? [...PERIODS, { key: "custom", label: "Rentang Pilihan" }]
+        ? [{ key: "custom", label: "Rentang Pilihan" }, ...PERIODS]
         : PERIODS;
       periods.forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = marketingPeriodData(range);
         const card = periodCard(label, range);
+        if (key === "custom") card.classList.add("custom-period-card");
         const kpis = createElement("div", "period-kpis marketing-kpis");
         addMiniKpi(kpis, "Lead masuk", data ? formatCount(data.leads) : "—");
         addMiniKpi(kpis, "Follow-up", data ? formatCount(data.followUps) : "—");
@@ -1058,12 +1060,13 @@
       const container = document.getElementById("adsPeriods");
       container.replaceChildren();
       const periods = selectedDateRange
-        ? [...PERIODS, { key: "custom", label: "Rentang Pilihan" }]
+        ? [{ key: "custom", label: "Rentang Pilihan" }, ...PERIODS]
         : PERIODS;
       periods.forEach(({ key, label }) => {
         const range = periodRanges[key];
         const data = matchingAdsPeriod(key, range);
         const card = periodCard(label, range);
+        if (key === "custom") card.classList.add("custom-period-card");
         const kpis = createElement("div", "period-kpis ads-kpis");
         addMiniKpi(kpis, "Lead iklan", data.available ? formatCount(data.leads) : "—");
         addMiniKpi(kpis, "Pengeluaran", data.available ? formatMoney(data.spend) : "—", true);
@@ -1108,24 +1111,37 @@
       renderAdsCards(periodRanges);
     }
 
-    function applyDateFilter(event) {
-      event.preventDefault();
+    function updateDateFilterFromInputs() {
       const startInput = document.getElementById("dateFilterStart");
       const endInput = document.getElementById("dateFilterEnd");
       const message = document.getElementById("dateFilterMessage");
+      if (!startInput.value || !endInput.value) {
+        if (selectedDateRange) {
+          selectedDateRange = null;
+          render();
+        }
+        message.textContent = "";
+        return false;
+      }
       const start = parseDate(startInput.value);
       const end = parseDate(endInput.value);
       if (!start || !end) {
         message.textContent = "Pilih tanggal mulai dan tanggal akhir.";
-        return;
+        return false;
       }
       if (start > end) {
         message.textContent = "Tanggal mulai tidak boleh setelah tanggal akhir.";
-        return;
+        return false;
       }
-      message.textContent = "";
+      message.textContent = `Filter aktif: ${dateText(start)} – ${dateText(end)}.`;
       selectedDateRange = { start, end };
       render();
+      return true;
+    }
+
+    function applyDateFilter(event) {
+      event.preventDefault();
+      updateDateFilterFromInputs();
     }
 
     function clearDateFilter() {
@@ -1495,11 +1511,9 @@
     document.getElementById("refreshButton").addEventListener("click", loadData);
     document.getElementById("dateFilterForm").addEventListener("submit", applyDateFilter);
     document.getElementById("clearDateFilter").addEventListener("click", clearDateFilter);
-    document.getElementById("dateFilterStart").addEventListener("change", () => {
-      document.getElementById("dateFilterMessage").textContent = "";
-    });
-    document.getElementById("dateFilterEnd").addEventListener("change", () => {
-      document.getElementById("dateFilterMessage").textContent = "";
+    ["dateFilterStart", "dateFilterEnd"].forEach((id) => {
+      document.getElementById(id).addEventListener("change", updateDateFilterFromInputs);
+      document.getElementById(id).addEventListener("input", updateDateFilterFromInputs);
     });
     document.getElementById("adminToggle").addEventListener("click", openAdminPanel);
     document.getElementById("closeAdmin").addEventListener("click", () => document.getElementById("adminPanel").close());
