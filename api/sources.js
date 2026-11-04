@@ -41,9 +41,13 @@ function parseTeamSheet(entry) {
   }
   const division = typeof entry.division === "string" ? entry.division.trim() : "";
   const name = typeof entry.name === "string" ? entry.name.trim() : "";
+  const location = typeof entry.location === "string" ? entry.location.trim() : "";
   const url = typeof entry.url === "string" ? entry.url.trim() : "";
   if (!division || division.length > 80 || !name || name.length > 80) {
     throw new Error("Divisi dan nama anggota wajib diisi, maksimal 80 karakter.");
+  }
+  if (division.toLocaleLowerCase("id-ID") === "admin" && (!location || location.length > 80)) {
+    throw new Error("Nama lokasi proyek Admin wajib diisi dan maksimal 80 karakter.");
   }
 
   let parsedUrl;
@@ -57,7 +61,12 @@ function parseTeamSheet(entry) {
   if (!match) {
     throw new Error(`Link untuk "${name}" harus berupa link Google Sheets.`);
   }
-  return { division, name, id: match[1] };
+  return {
+    division,
+    name,
+    ...(division.toLocaleLowerCase("id-ID") === "admin" ? { location } : {}),
+    id: match[1]
+  };
 }
 
 module.exports = async function handler(req, res) {
@@ -105,6 +114,12 @@ module.exports = async function handler(req, res) {
       return person.trim();
     });
     const teamSheets = teamSheetsInput === undefined ? null : teamSheetsInput.map(parseTeamSheet);
+    if (teamSheets) {
+      const adminLocations = teamSheets.filter((entry) => entry.division.toLocaleLowerCase("id-ID") === "admin");
+      if (adminLocations.length > 0 && adminLocations.length !== 3) {
+        return res.status(400).json({ error: "Divisi Admin harus memiliki tepat tiga spreadsheet, satu untuk setiap lokasi proyek." });
+      }
+    }
     if (marketingPeople) {
       const uniquePeople = new Set(marketingPeople.map((person) => person.toLocaleLowerCase("id-ID")));
       if (uniquePeople.size !== marketingPeople.length) {
@@ -126,6 +141,11 @@ module.exports = async function handler(req, res) {
       if (teamIds.size !== teamSheets.length) {
         return res.status(400).json({ error: "Spreadsheet orang yang sama tidak boleh dipakai lebih dari sekali." });
       }
+      const adminLocations = teamSheets.filter((entry) => entry.division.toLocaleLowerCase("id-ID") === "admin");
+      const locationNames = new Set(adminLocations.map((entry) => entry.location.toLocaleLowerCase("id-ID")));
+      if (locationNames.size !== adminLocations.length) {
+        return res.status(400).json({ error: "Nama lokasi proyek Admin tidak boleh duplikat." });
+      }
     }
 
     const savedPeople = marketingPeople || await getMarketingPeople();
@@ -144,6 +164,7 @@ module.exports = async function handler(req, res) {
       error.message.startsWith("Nama anggota") ||
       error.message.startsWith("Divisi") ||
       error.message.startsWith("Link spreadsheet") ||
+      error.message.startsWith("Nama lokasi") ||
       error.message.startsWith("Setiap") ||
       error.message.startsWith("Nama orang") ||
       error.message.startsWith("Spreadsheet orang")
