@@ -1245,14 +1245,18 @@
         const pill = document.createElement("div");
         pill.className = "source-pill";
         pill.dataset.state = error ? "error" : empty ? "warning" : "ok";
-        const status = error
-          ? "gagal dimuat"
-          : empty
-            ? source.personName
-              ? `${source.personName} belum mengisi data`
-              : "divisi ini belum mengisi data"
-            : "terhubung";
-        pill.append(document.createTextNode(`${source.name}: ${status}`));
+        const divisionNames = {
+          leads: "Marketing",
+          "person-leads": "Marketing",
+          "ads-daily": "Ads",
+          content: "Konten",
+          "admin-progress": "Admin"
+        };
+        const sourceName = empty
+          ? divisionNames[source.type] || "Divisi"
+          : source.name;
+        const status = error ? "gagal dimuat" : empty ? "belum mengisi data" : "terhubung";
+        pill.append(document.createTextNode(`${sourceName}: ${status}`));
         const dot = document.createElement("span");
         dot.className = "source-dot";
         pill.prepend(dot);
@@ -1260,20 +1264,14 @@
       });
     }
 
-    function renderTeamNotice(elementId, names) {
+    function renderTeamNotice(elementId, isEmpty) {
       const notice = document.getElementById(elementId);
-      const uniqueNames = [...new Set(names)];
-      notice.hidden = uniqueNames.length === 0;
-      notice.textContent = uniqueNames.length
-        ? `Divisi ini belum mengisi data: ${uniqueNames.join(", ")}.`
-        : "";
+      notice.hidden = !isEmpty;
+      notice.textContent = isEmpty ? "Divisi ini belum mengisi data." : "";
     }
 
-    function emptySourceNames(types) {
-      return state.emptySources
-        .filter(({ source }) => types.includes(source.type))
-        .map((result) => result.source.personName || result.name ||
-          result.source.name.replace(/^(?:marketing|ads|konten|admin)\s*[·-]\s*/i, ""));
+    function hasEmptySource(types) {
+      return state.emptySources.some(({ source }) => types.includes(source.type));
     }
 
     function formatCount(value) {
@@ -1872,18 +1870,18 @@
       document.getElementById("lastUpdated").textContent = state.lastUpdated
         ? `Terakhir diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(state.lastUpdated)}`
         : "Memuat laporan...";
-      renderTeamNotice("marketingNotice", emptySourceNames(["leads", "person-leads"]));
-      const emptyAdsNames = emptySourceNames(["ads-daily"]);
+      renderTeamNotice("marketingNotice", hasEmptySource(["leads", "person-leads"]));
+      let isAdsEmpty = hasEmptySource(["ads-daily"]);
       const hasSummaryAds = state.summary.some(({ data }) =>
         ["day", "week", "month"].some((key) => data[key] && data[key].ads && data[key].ads.length) ||
         data.weeklyHistory.some((report) => report.ads && report.ads.length)
       );
-      if (!state.adsRecords.length && !hasSummaryAds && state.summary.length && !emptyAdsNames.length) {
-        emptyAdsNames.push("tim Ads");
+      if (!state.adsRecords.length && !hasSummaryAds && state.summary.length && !isAdsEmpty) {
+        isAdsEmpty = true;
       }
-      renderTeamNotice("adsNotice", emptyAdsNames);
-      renderTeamNotice("contentNotice", emptySourceNames(["content"]));
-      renderTeamNotice("adminNotice", emptySourceNames(["admin-progress"]));
+      renderTeamNotice("adsNotice", isAdsEmpty);
+      renderTeamNotice("contentNotice", hasEmptySource(["content"]));
+      renderTeamNotice("adminNotice", hasEmptySource(["admin-progress"]));
       renderMarketingCards(periodRanges);
       renderAdsCards(periodRanges);
       renderContentCards(periodRanges);
@@ -2032,7 +2030,7 @@
       }));
       const personalLeadResults = usePersonalMarketingSheets
         ? await Promise.all(marketingTeamSheets.map(async (entry) => {
-          const source = { name: `${entry.division} · ${entry.name}`, personName: entry.name, id: entry.id, type: "person-leads" };
+          const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "person-leads" };
           try {
             const url = teamSheetExportUrl(entry);
             const response = await fetch(url, { cache: "no-store" });
@@ -2045,7 +2043,7 @@
         : [];
       const adsTeamSheets = configuredTeamSheets.filter((entry) => normalize(entry.division) === "ads");
       const adsResults = await Promise.all(adsTeamSheets.map(async (entry) => {
-        const source = { name: `${entry.division} · ${entry.name}`, personName: entry.name, id: entry.id, type: "ads-daily" };
+        const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "ads-daily" };
         try {
           const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
@@ -2057,7 +2055,7 @@
       }));
       const contentTeamSheets = configuredTeamSheets.filter((entry) => normalize(entry.division) === "konten");
       const contentResults = await Promise.all(contentTeamSheets.map(async (entry) => {
-        const source = { name: `${entry.division} · ${entry.name}`, personName: entry.name, id: entry.id, type: "content" };
+        const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "content" };
         try {
           const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
@@ -2071,7 +2069,6 @@
       const adminResults = await Promise.all(adminTeamSheets.map(async (entry) => {
         const source = {
           name: `${entry.division} · ${entry.location || entry.name}`,
-          personName: entry.name,
           id: entry.id,
           type: "admin-progress"
         };
