@@ -56,16 +56,44 @@ function parseTeamSheet(entry) {
   } catch {
     throw new Error(`Link spreadsheet untuk "${name}" bukan URL yang valid.`);
   }
+  if (parsedUrl.hostname === "docs.google.com") {
+    const publishedMatch = parsedUrl.pathname.match(
+      /^\/spreadsheets\/d\/e\/([A-Za-z0-9_-]+)\/pub(?:html)?$/
+    );
+    if (publishedMatch) {
+      const gid = parsedUrl.searchParams.get("gid") || "";
+      if (!/^\d+$/.test(gid)) {
+        throw new Error(`Link Publish to web untuk "${name}" harus menunjuk satu tab dan menyertakan gid.`);
+      }
+      parsedUrl.pathname = `/spreadsheets/d/e/${publishedMatch[1]}/pub`;
+      parsedUrl.search = "";
+      parsedUrl.searchParams.set("gid", gid);
+      parsedUrl.searchParams.set("single", "true");
+      parsedUrl.searchParams.set("output", "csv");
+      return {
+        division,
+        name,
+        ...(division.toLocaleLowerCase("id-ID") === "admin" ? { location } : {}),
+        csvUrl: parsedUrl.toString()
+      };
+    }
+  }
   const match = parsedUrl.hostname === "docs.google.com" &&
     parsedUrl.pathname.match(/^\/spreadsheets\/d\/([A-Za-z0-9_-]+)/);
   if (!match) {
     throw new Error(`Link untuk "${name}" harus berupa link Google Sheets.`);
   }
+  const hashGid = parsedUrl.hash.match(/[#&]gid=(\d+)/);
+  const gid = parsedUrl.searchParams.get("gid") || (hashGid && hashGid[1]) || "";
+  if (gid && !/^\d+$/.test(gid)) {
+    throw new Error(`ID tab pada link spreadsheet "${name}" tidak valid.`);
+  }
   return {
     division,
     name,
     ...(division.toLocaleLowerCase("id-ID") === "admin" ? { location } : {}),
-    id: match[1]
+    id: match[1],
+    ...(gid ? { gid } : {})
   };
 }
 
@@ -137,7 +165,7 @@ module.exports = async function handler(req, res) {
       if (teamKeys.size !== teamSheets.length) {
         return res.status(400).json({ error: "Nama orang tidak boleh duplikat dalam divisi yang sama." });
       }
-      const teamIds = new Set(teamSheets.map((entry) => entry.id));
+      const teamIds = new Set(teamSheets.map((entry) => entry.csvUrl || entry.id));
       if (teamIds.size !== teamSheets.length) {
         return res.status(400).json({ error: "Spreadsheet orang yang sama tidak boleh dipakai lebih dari sekali." });
       }
@@ -164,6 +192,7 @@ module.exports = async function handler(req, res) {
       error.message.startsWith("Nama anggota") ||
       error.message.startsWith("Divisi") ||
       error.message.startsWith("Link spreadsheet") ||
+      error.message.startsWith("ID tab") ||
       error.message.startsWith("Nama lokasi") ||
       error.message.startsWith("Setiap") ||
       error.message.startsWith("Nama orang") ||
