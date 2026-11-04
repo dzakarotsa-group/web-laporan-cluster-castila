@@ -233,7 +233,8 @@
             <p class="admin-note">Marketing memakai satu baris per lead. Konten memakai kolom tanggal posting, properti, judul/topik, platform, views/reach, likes, comments, saves, shares, klik link/DM, dan catatan evaluasi.</p>
             <button class="secondary-button" id="addAdminLocation" type="button">+ Tambah lokasi Admin</button>
           </div>
-          <p class="admin-note">Tambahkan tepat tiga spreadsheet divisi Admin, satu untuk setiap admin/lokasi proyek. Isi nama admin dan nama lokasi secara terpisah. Kolom Admin dibaca dari format progress/tracking unit seperti Tgl ITJ, Blok, Nama User, Marketing, Harga Jadi, Bank Tujuan, Status Berkas, Tgl Masuk Bank, WWC, Update/Hasil Bank, Target Akad, dan Progress Unit.</p>
+          <p class="admin-note">Agar tab lain tidak ikut dibagikan, gunakan File → Bagikan → Publikasikan ke web di Google Sheets, pilih tab yang diperlukan dan format CSV, lalu tempel link publikasi di sini. Untuk Konten pilih tab Tracker Performa per Konten. Cara ini memublikasikan tab terpilih saja; jangan gunakan link berbagi biasa jika file memiliki tab privat.</p>
+          <p class="admin-note">Tambahkan tepat tiga spreadsheet divisi Admin, satu untuk setiap admin/lokasi proyek. Kolom Admin dibaca dari format progress/tracking unit seperti Tgl ITJ, Blok, Nama User, Marketing, Harga Jadi, Bank Tujuan, Status Berkas, Tgl Masuk Bank, WWC, Update/Hasil Bank, Target Akad, dan Progress Unit.</p>
         </div>
         <div class="admin-actions">
           <button class="secondary-button" id="addSourceButton" type="button">+ Tambah spreadsheet</button>
@@ -731,7 +732,7 @@
           aliases.platform.some((alias) => headers.includes(normalize(alias)));
       });
       if (headerRowIndex < 0) {
-        throw new Error("Header Konten tidak ditemukan. Pastikan sheet memiliki Tanggal Posting, Judul/Topik Konten, dan Platform.");
+        throw new Error("Header Konten tidak ditemukan pada tab ini. Pilih tab Tracker Performa per Konten dan simpan link tab yang memuat gid.");
       }
 
       const headers = rows[headerRowIndex].map(normalize);
@@ -1117,7 +1118,8 @@
         `Spreadsheet ${entry.division} · ${entry.name}`;
       const frame = document.getElementById("teamSheetFrame");
       frame.title = `Spreadsheet ${entry.division} ${entry.name}`;
-      frame.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/preview?rm=minimal`;
+      const tab = entry.gid !== undefined ? `&gid=${encodeURIComponent(entry.gid)}` : "";
+      frame.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/preview?rm=minimal${tab}`;
       if (!dialog.open) dialog.showModal();
     }
 
@@ -1637,6 +1639,15 @@
       return source.type === "summary" ? parseSummary(text) : parseLeadRecords(text);
     }
 
+    function teamSheetExportUrl(entry) {
+      if (entry.csvUrl) return entry.csvUrl;
+      const params = new URLSearchParams({ format: "csv" });
+      if (entry.gid !== undefined && /^\d+$/.test(String(entry.gid))) {
+        params.set("gid", String(entry.gid));
+      }
+      return `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?${params}`;
+    }
+
     async function requestJson(url, options = {}) {
       const response = await fetch(url, {
         cache: "no-store",
@@ -1706,7 +1717,7 @@
         ? await Promise.all(marketingTeamSheets.map(async (entry) => {
           const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "person-leads" };
           try {
-            const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+            const url = teamSheetExportUrl(entry);
             const response = await fetch(url, { cache: "no-store" });
             if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
             return { source, data: parseLeadRecords(await response.text(), entry.name), error: null };
@@ -1719,7 +1730,7 @@
       const adsResults = await Promise.all(adsTeamSheets.map(async (entry) => {
         const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "ads-daily" };
         try {
-          const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+          const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
           if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
           return { source, data: parseAdsRecords(await response.text()), error: null };
@@ -1731,7 +1742,7 @@
       const contentResults = await Promise.all(contentTeamSheets.map(async (entry) => {
         const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "content" };
         try {
-          const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+          const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
           if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
           return { source, data: parseContentRecords(await response.text()), error: null };
@@ -1747,7 +1758,7 @@
           type: "admin-progress"
         };
         try {
-          const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+          const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
           if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
           return {
@@ -1919,8 +1930,10 @@
       const urlInput = document.createElement("input");
       urlInput.type = "url";
       urlInput.required = true;
-      urlInput.placeholder = "https://docs.google.com/spreadsheets/d/...";
-      urlInput.value = person.id ? `https://docs.google.com/spreadsheets/d/${person.id}/edit` : "";
+      urlInput.placeholder = "Link sheet atau Publish to web CSV satu tab";
+      urlInput.value = person.csvUrl || (person.id
+        ? `https://docs.google.com/spreadsheets/d/${person.id}/edit${person.gid !== undefined ? `?gid=${encodeURIComponent(person.gid)}` : ""}`
+        : "");
       urlInput.dataset.field = "url";
       urlLabel.append(urlInput);
 
