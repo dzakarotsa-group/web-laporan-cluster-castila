@@ -98,6 +98,7 @@
     .period-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
     .period-kpis.ads-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .period-kpis.marketing-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .period-kpis.content-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .mini-kpi { min-width: 0; border-radius: 11px; padding: 11px; background: #f5f7fb; }
     .mini-kpi-label { display: block; min-height: 25px; color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.3; }
     .mini-kpi-value { display: block; margin-top: 5px; overflow-wrap: anywhere; color: #22334f; font-size: clamp(16px, 1.7vw, 22px); font-weight: 850; letter-spacing: -.04em; }
@@ -134,10 +135,22 @@
     .ads-person-list { display: grid; gap: 7px; }
     .ads-person-row { display: grid; grid-template-columns: minmax(48px, 1fr) auto auto; gap: 9px; border-top: 1px solid #eff2f6; padding-top: 7px; color: #58667c; font-size: 10px; }
     .ads-person-row strong { color: #293852; font-weight: 800; }
+    .detail-table-wrap { overflow-x: auto; }
+    .detail-table { width: 100%; min-width: 760px; border-collapse: collapse; }
+    .detail-table th, .detail-table td { padding: 8px 7px; border-bottom: 1px solid #eff2f6; color: #52617a; font-size: 10px; text-align: left; vertical-align: top; }
+    .detail-table th { color: #8994a6; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+    .detail-table td strong { color: #293852; }
+    .detail-table .numeric-cell { text-align: right; white-space: nowrap; }
+    .project-grid { display: grid; gap: 14px; }
+    .project-card { min-width: 0; padding: 17px; }
+    .project-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+    .status-tag { display: inline-flex; border-radius: 999px; padding: 4px 7px; color: #52617a; background: #f0f3f8; font-size: 9px; font-weight: 750; }
     .empty-state { padding: 13px 4px; color: #8994a6; font-size: 11px; line-height: 1.5; text-align: center; }
     .admin-subsection { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 17px; }
     .admin-person-list { display: grid; gap: 8px; }
     .admin-person-row { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(130px, .8fr) minmax(220px, 1.5fr) auto; align-items: end; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfe; }
+    .admin-person-row[data-division="Admin"] { grid-template-columns: minmax(110px, .6fr) minmax(130px, .7fr) minmax(140px, .8fr) minmax(200px, 1.4fr) auto; }
+    .admin-person-row [hidden] { display: none; }
     .admin-person-row .form-field { flex: 1; }
     .admin-person-row .danger-button { padding: 9px 10px; }
     h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
@@ -164,8 +177,11 @@
       .period-grid { grid-template-columns: 1fr; }
       .period-card { padding: 15px; }
       .admin-person-list { grid-template-columns: 1fr; }
+      .admin-person-row, .admin-person-row[data-division="Admin"] { grid-template-columns: 1fr; }
       .period-kpis.ads-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .period-kpis.marketing-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .period-kpis.content-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .project-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .booking-dialog { width: min(520px, calc(100% - 24px)); }
     }
   </style>
@@ -176,7 +192,7 @@
       <div>
         <p class="eyebrow">Cluster Castila · Laporan</p>
         <h1>Dashboard pemantauan</h1>
-        <p class="subtitle">Lihat laporan Marketing dan Ads dalam satu halaman.</p>
+        <p class="subtitle">Lihat laporan Marketing, Ads, Konten, dan progres proyek dalam satu halaman.</p>
       </div>
       <div class="topbar-actions">
         <button class="admin-toggle" id="adminToggle" type="button" aria-expanded="false" aria-controls="adminPanel">Admin</button>
@@ -207,13 +223,17 @@
         <div class="admin-subsection">
           <div class="admin-title-row">
             <div>
-              <h2>Spreadsheet per orang</h2>
-              <p class="panel-subtitle">Atur divisi, nama anggota, dan spreadsheet detail masing-masing.</p>
+              <h2>Spreadsheet tim & lokasi proyek</h2>
+              <p class="panel-subtitle">Atur sumber data anggota Marketing, Ads, Konten, serta Admin per lokasi.</p>
             </div>
             <button class="secondary-button" id="addMarketingPerson" type="button">+ Tambah orang</button>
           </div>
           <div class="admin-person-list" id="adminPersonList"></div>
-          <p class="admin-note">Marketing memakai sheet satu baris per lead dengan tanggal aktivitas tersendiri. Kolom yang dikenali: tanggal lead, sumber/platform, FU 1–FU 8, janji/rencana visit, visit terlaksana, dan booking/closing.</p>
+          <div class="admin-actions">
+            <p class="admin-note">Marketing memakai satu baris per lead. Konten memakai kolom tanggal posting, properti, judul/topik, platform, views/reach, likes, comments, saves, shares, klik link/DM, dan catatan evaluasi.</p>
+            <button class="secondary-button" id="addAdminLocation" type="button">+ Tambah lokasi Admin</button>
+          </div>
+          <p class="admin-note">Tambahkan tepat tiga spreadsheet divisi Admin, satu untuk setiap admin/lokasi proyek. Isi nama admin dan nama lokasi secara terpisah. Kolom Admin dibaca dari format progress/tracking unit seperti Tgl ITJ, Blok, Nama User, Marketing, Harga Jadi, Bank Tujuan, Status Berkas, Tgl Masuk Bank, WWC, Update/Hasil Bank, Target Akad, dan Progress Unit.</p>
         </div>
         <div class="admin-actions">
           <button class="secondary-button" id="addSourceButton" type="button">+ Tambah spreadsheet</button>
@@ -304,8 +324,28 @@
         <div class="period-grid" id="adsPeriods"></div>
       </section>
 
-      <p class="footer">Data diperbarui setiap 5 menit dan dapat dimuat ulang dengan tombol di atas. Marketing dihitung dari tanggal masing-masing aktivitas; Ads mengikuti periode rekap yang tersedia.</p>
-      <p class="privacy-note">Spreadsheet Marketing dapat dibuka semua pengunjung dashboard dan menampilkan seluruh kolom yang dibagikan, termasuk informasi kontak jika ada. Pastikan akses publik dan isi sheet memang boleh dilihat publik.</p>
+      <section class="division-section" aria-labelledby="contentTitle">
+        <div class="division-heading">
+          <div class="division-title">
+            <span class="division-mark" aria-hidden="true">K</span>
+            <div><h2 id="contentTitle">Konten</h2><p class="panel-subtitle">Performa posting per platform dan properti.</p></div>
+          </div>
+        </div>
+        <div class="period-grid" id="contentPeriods"></div>
+      </section>
+
+      <section class="division-section" aria-labelledby="adminProgressTitle">
+        <div class="division-heading">
+          <div class="division-title">
+            <span class="division-mark ads" aria-hidden="true">A</span>
+            <div><h2 id="adminProgressTitle">Admin · Progress Proyek</h2><p class="panel-subtitle">Pemantauan berkas, bank, dan progres unit per lokasi.</p></div>
+          </div>
+        </div>
+        <div class="project-grid" id="adminProjects"></div>
+      </section>
+
+      <p class="footer">Data diperbarui setiap 5 menit dan dapat dimuat ulang dengan tombol di atas. Marketing, Konten, dan Admin dihitung dari spreadsheet masing-masing; Ads mengikuti periode rekap yang tersedia.</p>
+      <p class="privacy-note">Dashboard membaca data dari spreadsheet Google yang dapat diakses publik. Pastikan akses dan isi sheet memang boleh dilihat publik.</p>
     </section>
   </main>
 
@@ -315,7 +355,13 @@
       { key: "week", label: "Minggu Ini" },
       { key: "month", label: "Bulan Ini" }
     ];
-    const state = { summary: [], leads: [], leadsReady: false, adsRecords: [], adsReady: false, lastUpdated: null };
+    const state = {
+      summary: [], leads: [], leadsReady: false,
+      adsRecords: [], adsReady: false,
+      contentRecords: [], contentReady: false,
+      adminProjects: [],
+      lastUpdated: null
+    };
     let configuredSources = [];
     let configuredMarketingPeople = [];
     let configuredTeamSheets = [];
@@ -661,6 +707,156 @@
         throw new Error("Header Ads ditemukan, tetapi tidak ada data bertanggal yang terbaca.");
       }
       return records;
+    }
+
+    function parseContentRecords(text) {
+      const rows = parseCsv(text);
+      const aliases = {
+        date: ["Tanggal Posting", "Tanggal Konten", "Tanggal", "Date"],
+        property: ["Properti", "Nama Properti", "Proyek"],
+        title: ["Judul/Topik Konten", "Judul Konten", "Topik Konten", "Judul", "Konten"],
+        platform: ["Platform", "Media Sosial"],
+        reach: ["Views/Reach", "Views", "Reach", "Jangkauan"],
+        likes: ["Likes", "Like"],
+        comments: ["Comments", "Comment", "Komentar"],
+        saves: ["Saves", "Save", "Disimpan"],
+        shares: ["Shares", "Share", "Dibagikan"],
+        clicks: ["Klik link/DM", "Klik Link", "Klik/DM", "Link/DM", "DM"],
+        evaluation: ["Catatan Evaluasi", "Evaluasi", "Catatan"]
+      };
+      const headerRowIndex = rows.slice(0, 20).findIndex((row) => {
+        const headers = row.map(normalize);
+        return aliases.date.some((alias) => headers.includes(normalize(alias))) &&
+          aliases.title.some((alias) => headers.includes(normalize(alias))) &&
+          aliases.platform.some((alias) => headers.includes(normalize(alias)));
+      });
+      if (headerRowIndex < 0) {
+        throw new Error("Header Konten tidak ditemukan. Pastikan sheet memiliki Tanggal Posting, Judul/Topik Konten, dan Platform.");
+      }
+
+      const headers = rows[headerRowIndex].map(normalize);
+      const indexOfAny = (names) => headers.findIndex((header) => names.some((name) => normalize(name) === header));
+      const indexes = Object.fromEntries(Object.entries(aliases).map(([key, names]) => [key, indexOfAny(names)]));
+      const records = rows.slice(headerRowIndex + 1).flatMap((row) => {
+        const date = parseDate(row[indexes.date]);
+        if (!date) return [];
+        return [{
+          date,
+          property: String(row[indexes.property] || "").trim() || "Tidak diketahui",
+          title: String(row[indexes.title] || "").trim() || "Tanpa judul",
+          platform: String(row[indexes.platform] || "").trim() || "Tidak diketahui",
+          reach: numeric(row[indexes.reach]),
+          likes: numeric(row[indexes.likes]),
+          comments: numeric(row[indexes.comments]),
+          saves: numeric(row[indexes.saves]),
+          shares: numeric(row[indexes.shares]),
+          clicks: numeric(row[indexes.clicks]),
+          evaluation: String(row[indexes.evaluation] || "").trim()
+        }];
+      });
+      if (!records.length) {
+        throw new Error("Header Konten ditemukan, tetapi tidak ada tanggal posting yang terbaca.");
+      }
+      return records;
+    }
+
+    function parseAdminRecords(text) {
+      const rows = parseCsv(text);
+      const aliases = {
+        number: ["No", "Nomor"],
+        entryDate: ["Tgl ITJ", "Tanggal ITJ", "Tgl Input", "Tanggal Input"],
+        block: ["Blok", "Block"],
+        user: ["Nama User", "Nama Konsumen", "Nama Customer", "Nama"],
+        marketing: ["Marketing", "Nama Marketing", "Sales"],
+        price: ["Harga Jadi", "Harga Deal", "Harga"],
+        bank: ["Bank Tujuan", "Bank"],
+        fileStatus: ["Status Berkas", "Berkas"],
+        bankEntryDate: ["Tgl Masuk Bank", "Tanggal Masuk Bank"],
+        wwc: ["WWC"],
+        bankUpdate: ["Update / Hasil Bank", "Update/Hasil Bank", "Hasil Bank", "Update Bank"],
+        akadTarget: ["Target Akad & Ket", "Target Akad", "Target Akad dan Keterangan"],
+        progress: ["Progress Unit", "Progress"]
+      };
+      const headerRowIndex = rows.slice(0, 20).findIndex((row) => {
+        const headers = row.map(normalize);
+        const matched = Object.values(aliases).filter((names) =>
+          names.some((alias) => headers.includes(normalize(alias)))
+        ).length;
+        return headers.some((header) => aliases.block.some((alias) => normalize(alias) === header)) && matched >= 4;
+      });
+      if (headerRowIndex < 0) {
+        throw new Error("Header Admin tidak ditemukan. Pastikan sheet memiliki kolom Blok dan data progress/tracking unit.");
+      }
+
+      const headers = rows[headerRowIndex].map(normalize);
+      const indexOfAny = (names) => headers.findIndex((header) => names.some((name) => normalize(name) === header));
+      const indexes = Object.fromEntries(Object.entries(aliases).map(([key, names]) => [key, indexOfAny(names)]));
+      const projects = new Map();
+      let current = null;
+      rows.slice(headerRowIndex + 1).forEach((row) => {
+        const block = String(row[indexes.block] || "").trim();
+        const user = String(row[indexes.user] || "").trim();
+        const hasDetails = Object.entries(indexes).some(([key, index]) =>
+          key !== "number" && index >= 0 && String(row[index] || "").trim()
+        );
+        if (!block && !user && !hasDetails) return;
+        if ((block || user) && (!current ||
+            (block && normalize(block) !== normalize(current.block)) ||
+            (user && current.user && normalize(user) !== normalize(current.user)))) {
+          const key = `${normalize(block)}|${normalize(user)}`;
+          current = projects.get(key);
+          if (!current) {
+            current = {
+              number: "", entryDate: null, block: "", user: "", marketing: "",
+              price: 0, fileStatus: "", bankEntryDate: null, wwc: "",
+              bankUpdate: "", akadTarget: "", progress: "", bankStatuses: []
+            };
+            projects.set(key, current);
+          }
+        }
+        if (!current) return;
+
+        const assignText = (key) => {
+          const value = String(row[indexes[key]] || "").trim();
+          if (value) current[key] = value;
+        };
+        assignText("number");
+        assignText("marketing");
+        assignText("fileStatus");
+        assignText("wwc");
+        assignText("bankUpdate");
+        assignText("akadTarget");
+        assignText("progress");
+        if (block) current.block = block;
+        if (user) current.user = user;
+        const entryDate = parseDate(row[indexes.entryDate]);
+        const bankEntryDate = parseDate(row[indexes.bankEntryDate]);
+        if (entryDate) current.entryDate = entryDate;
+        if (bankEntryDate) current.bankEntryDate = bankEntryDate;
+        if (indexes.price >= 0 && String(row[indexes.price] || "").trim()) {
+          current.price = numeric(row[indexes.price]);
+        }
+        const bank = String(row[indexes.bank] || "").trim();
+        if (bank) {
+          const bankStatus = {
+            bank,
+            fileStatus: String(row[indexes.fileStatus] || "").trim(),
+            bankEntryDate,
+            wwc: String(row[indexes.wwc] || "").trim(),
+            bankUpdate: String(row[indexes.bankUpdate] || "").trim()
+          };
+          const duplicate = current.bankStatuses.some((item) =>
+            normalize(item.bank) === normalize(bank) &&
+            normalize(item.bankUpdate) === normalize(bankStatus.bankUpdate) &&
+            normalize(item.fileStatus) === normalize(bankStatus.fileStatus)
+          );
+          if (!duplicate) current.bankStatuses.push(bankStatus);
+        }
+      });
+      if (!projects.size) {
+        throw new Error("Header Admin ditemukan, tetapi tidak ada baris unit yang terbaca.");
+      }
+      return [...projects.values()];
     }
 
     function automaticPeriods(now = new Date()) {
@@ -1170,7 +1366,7 @@
         addMiniKpi(kpis, "CPL", data.available ? formatMoney(data.cpl) : "—", true);
         card.append(kpis);
 
-        card.append(createElement("div", "mini-section-title", "Pengeluaran per Marketing"));
+        card.append(createElement("div", "mini-section-title", "Pengeluaran per advertiser"));
         if (!data.available) {
           const message = key === "custom"
             ? "Data Ads untuk rentang pilihan belum tersedia karena spreadsheet rekap tidak menyediakan data harian."
@@ -1197,6 +1393,185 @@
       });
     }
 
+    function contentMetrics(records, period) {
+      const posts = records.filter((record) => inPeriod(record.date, period));
+      const result = {
+        posts: posts.length,
+        reach: 0,
+        likes: 0,
+        comments: 0,
+        saves: 0,
+        shares: 0,
+        engagement: 0,
+        clicks: 0,
+        platforms: new Map(),
+        properties: new Map(),
+        records: posts
+      };
+      posts.forEach((post) => {
+        result.reach += post.reach;
+        result.likes += post.likes;
+        result.comments += post.comments;
+        result.saves += post.saves;
+        result.shares += post.shares;
+        result.engagement += post.likes + post.comments + post.saves + post.shares;
+        result.clicks += post.clicks;
+        result.platforms.set(post.platform, (result.platforms.get(post.platform) || 0) + post.reach);
+        result.properties.set(post.property, (result.properties.get(post.property) || 0) + 1);
+      });
+      return result;
+    }
+
+    function renderContentCards(periodRanges) {
+      const container = document.getElementById("contentPeriods");
+      container.replaceChildren();
+      container.classList.toggle("focused-period-grid", selectedReportPeriod !== "overview");
+      displayedReportPeriods().forEach(({ key, label }) => {
+        const range = periodRanges[key];
+        const card = periodCard(label, range);
+        if (key === "custom") card.classList.add("custom-period-card");
+        if (!state.contentReady) {
+          card.append(createElement("div", "empty-state", "Data Konten belum tersedia. Tambahkan spreadsheet divisi Konten melalui menu Admin."));
+          container.append(card);
+          return;
+        }
+        const data = contentMetrics(state.contentRecords, range);
+        const kpis = createElement("div", "period-kpis content-kpis");
+        addMiniKpi(kpis, "Konten diposting", formatCount(data.posts));
+        addMiniKpi(kpis, "Views / reach", formatCount(data.reach));
+        addMiniKpi(kpis, "Likes", formatCount(data.likes));
+        addMiniKpi(kpis, "Comments", formatCount(data.comments));
+        addMiniKpi(kpis, "Saves · shares", `${formatCount(data.saves)} · ${formatCount(data.shares)}`);
+        addMiniKpi(kpis, "Total interaksi", formatCount(data.engagement));
+        addMiniKpi(kpis, "Klik link / DM", formatCount(data.clicks));
+        card.append(kpis);
+
+        const platforms = [...data.platforms.entries()].map(([name, reach]) => ({ name, reach }));
+        card.append(createElement("div", "mini-section-title", "Views / reach per platform"));
+        const platformChart = createElement("div", "mini-chart");
+        renderMiniChart(platformChart, platforms.map((item) => ({ name: item.name, reach: item.reach })), "reach");
+        card.append(platformChart);
+        card.append(createElement("div", "mini-section-title", "Jumlah posting per properti"));
+        const propertyChart = createElement("div", "mini-chart");
+        renderMiniChart(propertyChart, [...data.properties.entries()].map(([name, posts]) => ({ name, posts })), "posts");
+        card.append(propertyChart);
+
+        card.append(createElement("div", "mini-section-title", "Rincian konten"));
+        const tableWrap = createElement("div", "detail-table-wrap");
+        const table = createElement("table", "detail-table");
+        const headings = ["Tanggal posting", "Properti", "Judul / topik", "Platform", "Views / reach", "Likes", "Comments", "Saves", "Shares", "Klik / DM", "Catatan evaluasi"];
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        headings.forEach((heading) => headerRow.append(createElement("th", "", heading)));
+        thead.append(headerRow);
+        table.append(thead);
+        const tbody = document.createElement("tbody");
+        const sortedRecords = [...data.records].sort((a, b) => b.date - a.date);
+        if (!sortedRecords.length) {
+          const row = document.createElement("tr");
+          const cell = createElement("td", "empty-state", "Belum ada posting pada periode ini.");
+          cell.colSpan = headings.length;
+          row.append(cell);
+          tbody.append(row);
+        } else {
+          sortedRecords.forEach((post) => {
+            const row = document.createElement("tr");
+            [
+              dateText(post.date), post.property, post.title, post.platform,
+              formatCount(post.reach), formatCount(post.likes), formatCount(post.comments),
+              formatCount(post.saves), formatCount(post.shares), formatCount(post.clicks),
+              post.evaluation || "—"
+            ].forEach((value, index) => {
+              const cell = createElement("td", index >= 4 && index <= 9 ? "numeric-cell" : "", value);
+              if (index === 2) cell.replaceChildren(createElement("strong", "", value));
+              row.append(cell);
+            });
+            tbody.append(row);
+          });
+        }
+        table.append(tbody);
+        tableWrap.append(table);
+        card.append(tableWrap);
+        container.append(card);
+      });
+    }
+
+    function isCompleteStatus(value) {
+      return /(lengkap|selesai|sudah|approved|complete|akad|lunas)/i.test(String(value || ""));
+    }
+
+    function renderAdminProjects() {
+      const container = document.getElementById("adminProjects");
+      container.replaceChildren();
+      if (!state.adminProjects.length) {
+        container.append(createElement("div", "card project-card empty-state",
+          "Spreadsheet Admin belum diatur. Tambahkan tiga entri divisi Admin di pengaturan, masing-masing untuk satu lokasi proyek."));
+        return;
+      }
+
+      state.adminProjects.forEach((project) => {
+        const card = createElement("article", "card project-card");
+        const heading = createElement("div", "period-card-heading");
+        const titleGroup = document.createElement("div");
+          titleGroup.append(createElement("h3", "", project.location || project.name));
+          titleGroup.append(createElement("div", "period-date", `${project.name} · ${formatCount(project.records.length)} unit terpantau`));
+        heading.append(titleGroup, createElement("span", "live-badge", "Lokasi proyek"));
+        card.append(heading);
+        if (!project.records.length) {
+          card.append(createElement("div", "empty-state", project.error
+            ? `Data lokasi ini tidak dapat dimuat: ${project.error}`
+            : "Belum ada data unit pada spreadsheet lokasi ini."));
+          container.append(card);
+          return;
+        }
+
+        const records = project.records;
+        const completeFiles = records.filter((unit) => isCompleteStatus(unit.fileStatus)).length;
+        const completedWwc = records.filter((unit) => isCompleteStatus(unit.wwc)).length;
+        const akadTargets = records.filter((unit) => unit.akadTarget).length;
+        const kpis = createElement("div", "project-kpis");
+        addMiniKpi(kpis, "Total unit", formatCount(records.length));
+        addMiniKpi(kpis, "Berkas lengkap", formatCount(completeFiles));
+        addMiniKpi(kpis, "WWC selesai", formatCount(completedWwc));
+        addMiniKpi(kpis, "Target akad", formatCount(akadTargets));
+        card.append(kpis);
+
+        const tableWrap = createElement("div", "detail-table-wrap");
+        const table = createElement("table", "detail-table");
+        const headings = ["Tgl ITJ", "Blok", "Nama User", "Marketing", "Harga Jadi", "Bank Tujuan", "Status Berkas", "Tgl Masuk Bank", "WWC", "Update / Hasil Bank", "Target Akad & Ket", "Progress Unit"];
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        headings.forEach((heading) => headerRow.append(createElement("th", "", heading)));
+        thead.append(headerRow);
+        table.append(thead);
+        const tbody = document.createElement("tbody");
+        records.forEach((unit) => {
+          const row = document.createElement("tr");
+          const banks = unit.bankStatuses.length
+            ? unit.bankStatuses.map((status) => status.bank).filter(Boolean).join(" · ")
+            : "—";
+          const bankDetails = (key, formatter = (value) => value) => unit.bankStatuses
+            .filter((status) => status[key])
+            .map((status) => `${status.bank}: ${formatter(status[key])}`)
+            .join(" · ");
+          [
+            dateText(unit.entryDate) || "—", unit.block || "—", unit.user || "—",
+            unit.marketing || "—", unit.price ? formatMoney(unit.price) : "—", banks,
+            bankDetails("fileStatus") || unit.fileStatus || "—",
+            bankDetails("bankEntryDate", dateText) || dateText(unit.bankEntryDate) || "—",
+            bankDetails("wwc") || unit.wwc || "—",
+            bankDetails("bankUpdate") || unit.bankUpdate || "—",
+            unit.akadTarget || "—", unit.progress || "—"
+          ].forEach((value) => row.append(createElement("td", "", value)));
+          tbody.append(row);
+        });
+        table.append(tbody);
+        tableWrap.append(table);
+        card.append(tableWrap);
+        container.append(card);
+      });
+    }
+
     function render() {
       const periodRanges = automaticPeriods();
       if (selectedDateRange) periodRanges.custom = selectedDateRange;
@@ -1209,6 +1584,8 @@
         : "Memuat laporan...";
       renderMarketingCards(periodRanges);
       renderAdsCards(periodRanges);
+      renderContentCards(periodRanges);
+      renderAdminProjects();
     }
 
     function updateDateFilterFromInputs() {
@@ -1350,7 +1727,41 @@
           return { source, data: null, error };
         }
       }));
-      const allResults = [...results, ...personalLeadResults, ...adsResults];
+      const contentTeamSheets = configuredTeamSheets.filter((entry) => normalize(entry.division) === "konten");
+      const contentResults = await Promise.all(contentTeamSheets.map(async (entry) => {
+        const source = { name: `${entry.division} · ${entry.name}`, id: entry.id, type: "content" };
+        try {
+          const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+          const response = await fetch(url, { cache: "no-store" });
+          if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
+          return { source, data: parseContentRecords(await response.text()), error: null };
+        } catch (error) {
+          return { source, data: null, error };
+        }
+      }));
+      const adminTeamSheets = configuredTeamSheets.filter((entry) => normalize(entry.division) === "admin");
+      const adminResults = await Promise.all(adminTeamSheets.map(async (entry) => {
+        const source = {
+          name: `${entry.division} · ${entry.location || entry.name}`,
+          id: entry.id,
+          type: "admin-progress"
+        };
+        try {
+          const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(entry.id)}/export?format=csv`;
+          const response = await fetch(url, { cache: "no-store" });
+          if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
+          return {
+            source,
+            name: entry.name,
+            location: entry.location || entry.name,
+            data: parseAdminRecords(await response.text()),
+            error: null
+          };
+        } catch (error) {
+          return { source, name: entry.name, data: [], error };
+        }
+      }));
+      const allResults = [...results, ...personalLeadResults, ...adsResults, ...contentResults, ...adminResults];
 
       state.sourceResults = results;
       state.summary = results.filter((result) => result.source.type === "summary" && !result.error);
@@ -1362,6 +1773,15 @@
         .filter((result) => !result.error);
       state.leadsReady = leadResults.length > 0;
       state.leads = leadResults.flatMap((result) => result.data);
+      const successfulContentResults = contentResults.filter((result) => !result.error);
+      state.contentReady = successfulContentResults.length > 0;
+      state.contentRecords = successfulContentResults.flatMap((result) => result.data);
+      state.adminProjects = adminResults.map((result) => ({
+        name: result.name,
+        location: result.location || result.name,
+        records: result.data || [],
+        error: result.error ? result.error.message : ""
+      }));
       state.lastUpdated = new Date();
       setSourceStatus(allResults);
 
@@ -1370,7 +1790,8 @@
         errorBanner.textContent = failures.map(({ source, error }) => `${source.name}: ${error.message || "terjadi kesalahan saat mengambil data."}`).join(" ");
         errorBanner.classList.add("is-visible");
       }
-      if (!state.summary.length && !state.leadsReady) {
+      if (!state.summary.length && !state.leadsReady && !state.adsReady &&
+          !state.contentReady && !state.adminProjects.length) {
         dashboard.classList.add("hidden");
         loading.textContent = failures.length
           ? `Dashboard belum dapat ditampilkan karena tidak ada spreadsheet yang berhasil dimuat. ${failures.map((item) => item.source.name).join(", ")}`
@@ -1461,7 +1882,7 @@
       const divisionLabel = createElement("label", "form-field", "Divisi");
       const divisionSelect = document.createElement("select");
       divisionSelect.dataset.field = "division";
-      ["Marketing", "Ads", "Konten"].forEach((division) => {
+      ["Marketing", "Ads", "Konten", "Admin"].forEach((division) => {
         const option = document.createElement("option");
         option.value = division;
         option.textContent = division;
@@ -1470,17 +1891,31 @@
       divisionSelect.value = person.division || "Marketing";
       divisionLabel.append(divisionSelect);
 
-      const nameLabel = createElement("label", "form-field", "Nama orang");
+      const nameLabel = createElement("label", "form-field");
+      const nameLabelText = document.createTextNode("");
+      nameLabel.append(nameLabelText);
       const input = document.createElement("input");
       input.type = "text";
       input.maxLength = 80;
       input.required = true;
-      input.placeholder = "Contoh: Nisa";
+      input.placeholder = divisionSelect.value === "Admin" ? "Contoh: Lokasi Proyek 1" : "Contoh: Nisa";
       input.value = person.name || "";
       input.dataset.field = "name";
       nameLabel.append(input);
 
-      const urlLabel = createElement("label", "form-field", "Link spreadsheet orang ini");
+      const locationLabel = createElement("label", "form-field");
+      locationLabel.append(document.createTextNode("Lokasi proyek"));
+      const locationInput = document.createElement("input");
+      locationInput.type = "text";
+      locationInput.maxLength = 80;
+      locationInput.dataset.field = "location";
+      locationInput.placeholder = "Contoh: Castila Garden";
+      locationInput.value = person.location || "";
+      locationLabel.append(locationInput);
+
+      const urlLabel = createElement("label", "form-field");
+      const urlLabelText = document.createTextNode("");
+      urlLabel.append(urlLabelText);
       const urlInput = document.createElement("input");
       urlInput.type = "url";
       urlInput.required = true;
@@ -1492,8 +1927,23 @@
       const remove = createElement("button", "danger-button", "Hapus");
       remove.type = "button";
       remove.setAttribute("aria-label", `Hapus spreadsheet ${person.name || "anggota baru"}`);
-      remove.addEventListener("click", () => row.remove());
-      row.append(divisionLabel, nameLabel, urlLabel, remove);
+      remove.addEventListener("click", () => {
+        row.remove();
+        updateAdminLocationButton();
+      });
+      row.append(divisionLabel, nameLabel, locationLabel, urlLabel, remove);
+      const updateDivisionLabels = () => {
+        const isAdminLocation = divisionSelect.value === "Admin";
+        nameLabelText.textContent = isAdminLocation ? "Nama Admin" : "Nama orang";
+        input.placeholder = isAdminLocation ? "Nama orang yang bertanggung jawab" : "Contoh: Nisa";
+        locationLabel.hidden = !isAdminLocation;
+        locationInput.required = isAdminLocation;
+        urlLabelText.textContent = isAdminLocation ? "Link spreadsheet lokasi ini" : "Link spreadsheet orang ini";
+        row.dataset.division = divisionSelect.value;
+        updateAdminLocationButton();
+      };
+      divisionSelect.addEventListener("change", updateDivisionLabels);
+      updateDivisionLabels();
       document.getElementById("adminPersonList").append(row);
     }
 
@@ -1501,12 +1951,32 @@
       const list = document.getElementById("adminPersonList");
       list.replaceChildren();
       teamSheets.forEach(addMarketingPersonRow);
+      updateAdminLocationButton();
+    }
+
+    function updateAdminLocationButton() {
+      const button = document.getElementById("addAdminLocation");
+      if (!button) return;
+      const count = document.querySelectorAll('.admin-person-row[data-division="Admin"]').length;
+      button.disabled = count >= 3;
+      button.textContent = count >= 3 ? "Tiga lokasi Admin sudah ditambahkan" : "+ Tambah lokasi Admin";
+    }
+
+    function addAdminLocation() {
+      const count = document.querySelectorAll('.admin-person-row[data-division="Admin"]').length;
+      if (count >= 3) return;
+      const currentNames = new Set([...document.querySelectorAll('.admin-person-row[data-division="Admin"] [data-field="location"]')]
+        .map((input) => normalize(input.value)));
+      let locationNumber = 1;
+      while (currentNames.has(normalize(`Lokasi Proyek ${locationNumber}`))) locationNumber += 1;
+      addMarketingPersonRow({ division: "Admin", name: "", location: `Lokasi Proyek ${locationNumber}`, id: "" });
+      updateAdminLocationButton();
     }
 
     function showAdminEditor(sources, teamSheets) {
       document.getElementById("adminLogin").hidden = true;
       document.getElementById("adminEditor").hidden = false;
-      setAdminTitle("Pengaturan admin", "Kelola sumber umum dan spreadsheet per orang.");
+      setAdminTitle("Pengaturan admin", "Kelola sumber umum, spreadsheet tim, dan tiga lokasi proyek Admin.");
       renderAdminSources(sources);
       renderAdminPeople(teamSheets);
       setAdminMessage("");
@@ -1574,11 +2044,13 @@
       const teamSheets = [...document.querySelectorAll(".admin-person-row")].map((row) => ({
         division: row.querySelector('[data-field="division"]').value,
         name: row.querySelector('[data-field="name"]').value.trim(),
+        location: row.querySelector('[data-field="location"]').value.trim(),
         url: row.querySelector('[data-field="url"]').value.trim()
       }));
       const marketingPeople = teamSheets
         .filter((entry) => normalize(entry.division) === "marketing")
         .map((entry) => entry.name);
+      const adminLocations = teamSheets.filter((entry) => normalize(entry.division) === "admin");
       if (!marketingPeople.length) marketingPeople.push(...configuredMarketingPeople);
       if (sources.some((source) => !source.name || !source.url)) {
         setAdminMessage("Lengkapi nama dan link untuk setiap spreadsheet.");
@@ -1586,6 +2058,14 @@
       }
       if (teamSheets.some((entry) => !entry.division || !entry.name || !entry.url)) {
         setAdminMessage("Lengkapi divisi, nama, dan link spreadsheet untuk setiap orang.");
+        return;
+      }
+      if (adminLocations.length > 0 && adminLocations.length !== 3) {
+        setAdminMessage("Divisi Admin harus memiliki tepat tiga spreadsheet, satu untuk setiap lokasi proyek.");
+        return;
+      }
+      if (adminLocations.some((entry) => !entry.location)) {
+        setAdminMessage("Isi nama lokasi proyek untuk setiap Admin.");
         return;
       }
       if (!marketingPeople.length || marketingPeople.some((name) => !name)) {
@@ -1652,6 +2132,7 @@
     document.getElementById("adminLogin").addEventListener("submit", submitAdminLogin);
     document.getElementById("addSourceButton").addEventListener("click", () => addAdminSourceRow());
     document.getElementById("addMarketingPerson").addEventListener("click", () => addMarketingPersonRow());
+    document.getElementById("addAdminLocation").addEventListener("click", addAdminLocation);
     document.getElementById("saveSourcesButton").addEventListener("click", saveAdminSources);
     document.getElementById("adminLogout").addEventListener("click", logoutAdmin);
     document.getElementById("closeBookingDialog").addEventListener("click", () => document.getElementById("bookingDialog").close());
