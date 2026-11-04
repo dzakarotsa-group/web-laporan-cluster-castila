@@ -65,9 +65,13 @@
     .source-pill[data-state="error"] { border-color: #f1c7cb; color: #a33a47; background: #fffafb; }
     .source-pill[data-state="error"] .source-dot { background: var(--red); }
     .source-pill[data-state="loading"] .source-dot { background: var(--orange); }
+    .source-pill[data-state="warning"] { border-color: #f0dfb8; color: #805c1e; background: #fffaf0; }
+    .source-pill[data-state="warning"] .source-dot { background: var(--orange); box-shadow: 0 0 0 3px #e99a3720; }
 
     .error-banner { display: none; margin-bottom: 18px; border: 1px solid #f1c7cb; border-radius: 12px; padding: 13px 15px; color: #953744; background: #fffafb; font-size: 13px; line-height: 1.5; }
     .error-banner.is-visible { display: block; }
+    .team-notice { margin: 0 0 13px; border: 1px solid #f0dfb8; border-radius: 12px; padding: 11px 13px; color: #76571d; background: #fffaf0; font-size: 12px; line-height: 1.5; }
+    .team-notice[hidden] { display: none; }
     .loading-banner { margin: 30px 0; color: var(--muted); text-align: center; font-size: 14px; }
 
     .card { border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 8px 24px #263b5d08; }
@@ -573,6 +577,7 @@
             <div><h2 id="marketingTitle">Marketing</h2><p class="panel-subtitle">Lead masuk, tindak lanjut, dan asal lead.</p></div>
           </div>
         </div>
+        <div class="team-notice" id="marketingNotice" role="status" aria-live="polite" hidden></div>
         <div class="period-grid" id="marketingPeriods"></div>
       </section>
 
@@ -583,6 +588,7 @@
             <div><h2 id="adsTitle">Ads</h2><p class="panel-subtitle">Hasil iklan, biaya, dan biaya per lead (CPL).</p></div>
           </div>
         </div>
+        <div class="team-notice" id="adsNotice" role="status" aria-live="polite" hidden></div>
         <div class="period-grid" id="adsPeriods"></div>
       </section>
 
@@ -593,6 +599,7 @@
             <div><h2 id="contentTitle">Konten</h2><p class="panel-subtitle">Performa posting per platform dan properti.</p></div>
           </div>
         </div>
+        <div class="team-notice" id="contentNotice" role="status" aria-live="polite" hidden></div>
         <div class="period-grid" id="contentPeriods"></div>
       </section>
 
@@ -603,6 +610,7 @@
             <div><h2 id="adminProgressTitle">Admin · Progress Proyek</h2><p class="panel-subtitle">Pemantauan berkas, bank, dan progres unit per lokasi.</p></div>
           </div>
         </div>
+        <div class="team-notice" id="adminNotice" role="status" aria-live="polite" hidden></div>
         <div class="project-grid" id="adminProjects"></div>
       </section>
 
@@ -621,6 +629,7 @@
       summary: [], leads: [], leadsReady: false,
       adsRecords: [], adsReady: false,
       contentRecords: [], contentReady: false,
+      emptySources: [],
       adminProjects: [],
       lastUpdated: null
     };
@@ -856,7 +865,6 @@
 
     function parseLeadRecords(text, personName = "") {
       const rows = parseCsv(text);
-      if (rows.length < 2) throw new Error("Daftar lead tidak berisi data.");
       const headerAliases = {
         date: ["Column 1", "Tanggal Lead", "Tanggal Masuk", "Tanggal", "Lead Date"],
         sales: ["Nama Sales", "Nama Marketing", "Marketing"],
@@ -922,7 +930,7 @@
           bookingCode: bookingIndex >= 0 ? String(row[bookingIndex] || "").trim() : ""
         });
       }
-      if (!records.length) {
+      if (!records.length && rows.length > headerRowIndex + 1) {
         throw new Error("Header ditemukan, tetapi tidak ada tanggal lead yang terbaca. Periksa format tanggal di sheet.");
       }
       return records;
@@ -965,7 +973,7 @@
           leads: numeric(row[leadsIndex])
         });
       });
-      if (!records.length) {
+      if (!records.length && rows.length > headerRowIndex + 1) {
         throw new Error("Header Ads ditemukan, tetapi tidak ada data bertanggal yang terbaca.");
       }
       return records;
@@ -1016,7 +1024,7 @@
           evaluation: String(row[indexes.evaluation] || "").trim()
         }];
       });
-      if (!records.length) {
+      if (!records.length && rows.length > headerRowIndex + 1) {
         throw new Error("Header Konten ditemukan, tetapi tidak ada tanggal posting yang terbaca.");
       }
       return records;
@@ -1115,7 +1123,7 @@
           if (!duplicate) current.bankStatuses.push(bankStatus);
         }
       });
-      if (!projects.size) {
+      if (!projects.size && rows.length > headerRowIndex + 1) {
         throw new Error("Header Admin ditemukan, tetapi tidak ada baris unit yang terbaca.");
       }
       return [...projects.values()];
@@ -1236,17 +1244,32 @@
     function setSourceStatus(results) {
       const container = document.getElementById("sourceStatus");
       container.replaceChildren();
-      results.forEach(({ source, error }) => {
+      results.forEach(({ source, error, empty }) => {
         const pill = document.createElement("div");
         pill.className = "source-pill";
-        pill.dataset.state = error ? "error" : "ok";
-        const status = error ? "gagal dimuat" : "terhubung";
+        pill.dataset.state = error ? "error" : empty ? "warning" : "ok";
+        const status = error ? "gagal dimuat" : empty ? "belum mengisi" : "terhubung";
         pill.append(document.createTextNode(`${source.name}: ${status}`));
         const dot = document.createElement("span");
         dot.className = "source-dot";
         pill.prepend(dot);
         container.append(pill);
       });
+    }
+
+    function renderTeamNotice(elementId, names) {
+        const notice = document.getElementById(elementId);
+        const uniqueNames = [...new Set(names)];
+        notice.hidden = uniqueNames.length === 0;
+        notice.textContent = uniqueNames.length
+          ? `Format spreadsheet terbaca, tetapi ${uniqueNames.join(", ")} belum mengisi data.`
+          : "";
+    }
+
+    function emptySourceNames(types) {
+        return state.emptySources
+          .filter(({ source }) => types.includes(source.type))
+          .map(({ source }) => source.name.replace(/^(?:marketing|ads|konten|admin)\s*[·-]\s*/i, ""));
     }
 
     function formatCount(value) {
@@ -1783,7 +1806,7 @@
         if (!project.records.length) {
           card.append(createElement("div", "empty-state", project.error
             ? `Data lokasi ini tidak dapat dimuat: ${project.error}`
-            : "Belum ada data unit pada spreadsheet lokasi ini."));
+            : "Format spreadsheet terbaca, tetapi tim lokasi ini belum mengisi data."));
           container.append(card);
           return;
         }
@@ -1845,6 +1868,18 @@
       document.getElementById("lastUpdated").textContent = state.lastUpdated
         ? `Terakhir diperbarui ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(state.lastUpdated)}`
         : "Memuat laporan...";
+      renderTeamNotice("marketingNotice", emptySourceNames(["leads", "person-leads"]));
+      const emptyAdsNames = emptySourceNames(["ads-daily"]);
+      const hasSummaryAds = state.summary.some(({ data }) =>
+        ["day", "week", "month"].some((key) => data[key] && data[key].ads && data[key].ads.length) ||
+        data.weeklyHistory.some((report) => report.ads && report.ads.length)
+      );
+      if (!state.adsRecords.length && !hasSummaryAds && state.summary.length && !emptyAdsNames.length) {
+        emptyAdsNames.push("tim Ads");
+      }
+      renderTeamNotice("adsNotice", emptyAdsNames);
+      renderTeamNotice("contentNotice", emptySourceNames(["content"]));
+      renderTeamNotice("adminNotice", emptySourceNames(["admin-progress"]));
       renderMarketingCards(periodRanges);
       renderAdsCards(periodRanges);
       renderContentCards(periodRanges);
@@ -1925,6 +1960,23 @@
       return body;
     }
 
+    function hasSourceData(source, data) {
+      if (Array.isArray(data)) return data.length > 0;
+      if (source.type === "summary") {
+        return ["day", "week", "month"].some((key) => {
+          const report = data[key];
+          return report && ((report.sales && report.sales.length) || (report.ads && report.ads.length));
+        }) || data.weeklyHistory.some((report) =>
+          (report.sales && report.sales.length) || (report.ads && report.ads.length)
+        );
+      }
+      return true;
+    }
+
+    function loadedSourceResult(source, data, additional = {}) {
+      return { source, data, error: null, empty: !hasSourceData(source, data), ...additional };
+    }
+
     async function loadData() {
       const button = document.getElementById("refreshButton");
       const loading = document.getElementById("loadingBanner");
@@ -1969,7 +2021,7 @@
         : configuredSources;
       const results = await Promise.all(sourcesToLoad.map(async (source) => {
         try {
-          return { source, data: await loadSource(source), error: null };
+          return loadedSourceResult(source, await loadSource(source));
         } catch (error) {
           return { source, data: null, error };
         }
@@ -1981,7 +2033,7 @@
             const url = teamSheetExportUrl(entry);
             const response = await fetch(url, { cache: "no-store" });
             if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
-            return { source, data: parseLeadRecords(await response.text(), entry.name), error: null };
+            return loadedSourceResult(source, parseLeadRecords(await response.text(), entry.name));
           } catch (error) {
             return { source, data: null, error };
           }
@@ -1994,7 +2046,7 @@
           const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
           if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
-          return { source, data: parseAdsRecords(await response.text()), error: null };
+          return loadedSourceResult(source, parseAdsRecords(await response.text()));
         } catch (error) {
           return { source, data: null, error };
         }
@@ -2006,7 +2058,7 @@
           const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
           if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
-          return { source, data: parseContentRecords(await response.text()), error: null };
+          return loadedSourceResult(source, parseContentRecords(await response.text()));
         } catch (error) {
           return { source, data: null, error };
         }
@@ -2022,13 +2074,10 @@
           const url = teamSheetExportUrl(entry);
           const response = await fetch(url, { cache: "no-store" });
           if (!response.ok) throw new Error(`Google Sheets merespons ${response.status}.`);
-          return {
-            source,
+          return loadedSourceResult(source, parseAdminRecords(await response.text()), {
             name: entry.name,
-            location: entry.location || entry.name,
-            data: parseAdminRecords(await response.text()),
-            error: null
-          };
+            location: entry.location || entry.name
+          });
         } catch (error) {
           return { source, name: entry.name, data: [], error };
         }
@@ -2036,6 +2085,7 @@
       const allResults = [...results, ...personalLeadResults, ...adsResults, ...contentResults, ...adminResults];
 
       state.sourceResults = results;
+      state.emptySources = allResults.filter((result) => !result.error && result.empty);
       state.summary = results.filter((result) => result.source.type === "summary" && !result.error);
       const successfulAdsResults = adsResults.filter((result) => !result.error);
       state.adsReady = successfulAdsResults.length > 0;
@@ -2052,7 +2102,8 @@
         name: result.name,
         location: result.location || result.name,
         records: result.data || [],
-        error: result.error ? result.error.message : ""
+        error: result.error ? result.error.message : "",
+        empty: Boolean(result.empty)
       }));
       state.lastUpdated = new Date();
       setSourceStatus(allResults);
