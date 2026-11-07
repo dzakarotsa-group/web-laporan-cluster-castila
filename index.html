@@ -147,7 +147,7 @@
     .detail-table .numeric-cell { text-align: right; white-space: nowrap; }
     .project-grid { display: grid; gap: 14px; }
     .project-card { min-width: 0; padding: 17px; }
-    .project-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+    .project-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
     .status-tag { display: inline-flex; border-radius: 999px; padding: 4px 7px; color: #52617a; background: #f0f3f8; font-size: 9px; font-weight: 750; }
     .empty-state { padding: 13px 4px; color: #8994a6; font-size: 11px; line-height: 1.5; text-align: center; }
     .admin-subsection { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 17px; }
@@ -1819,9 +1819,14 @@
         const completeFiles = records.filter((unit) => isCompleteStatus(unit.fileStatus)).length;
         const completedWwc = records.filter((unit) => isCompleteStatus(unit.wwc)).length;
         const akadTargets = records.filter((unit) => unit.akadTarget).length;
+        const sp3Units = records.filter((unit) =>
+          unit.bankStatuses.some((status) => /\bSP3\b/i.test(status.bankUpdate)) ||
+          /\bSP3\b/i.test(unit.bankUpdate)
+        ).length;
         const kpis = createElement("div", "project-kpis");
         addMiniKpi(kpis, "Total unit", formatCount(records.length));
         addMiniKpi(kpis, "Berkas lengkap", formatCount(completeFiles));
+        addMiniKpi(kpis, "SP3", formatCount(sp3Units));
         addMiniKpi(kpis, "WWC selesai", formatCount(completedWwc));
         addMiniKpi(kpis, "Target akad", formatCount(akadTargets));
         card.append(kpis);
