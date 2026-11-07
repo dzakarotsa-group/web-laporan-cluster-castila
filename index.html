@@ -499,7 +499,7 @@
             <button class="secondary-button" id="addAdminLocation" type="button">+ Tambah lokasi Admin</button>
           </div>
           <p class="admin-note">Agar tab lain tidak ikut dibagikan, gunakan File → Bagikan → Publikasikan ke web di Google Sheets, pilih tab yang diperlukan dan format CSV, lalu tempel link publikasi di sini. Untuk Konten pilih tab Tracker Performa per Konten. Cara ini memublikasikan tab terpilih saja; jangan gunakan link berbagi biasa jika file memiliki tab privat.</p>
-          <p class="admin-note">Tambahkan tepat tiga spreadsheet divisi Admin, satu untuk setiap admin/lokasi proyek. Kolom Admin dibaca dari format progress/tracking unit seperti Tgl ITJ, Blok, Nama User, Marketing, Harga Jadi, Bank Tujuan, Status Berkas, Tgl Masuk Bank, WWC, Update/Hasil Bank, Target Akad, dan Progress Unit.</p>
+          <p class="admin-note">Tambahkan tepat tiga spreadsheet divisi Admin, satu untuk setiap admin/lokasi proyek. Kolom Admin dibaca dari format progress/tracking unit seperti Tgl ITJ, Blok, Nama User, Marketing, Harga Jadi, Bank Tujuan, Status Berkas, Tgl Masuk Bank, WWC, Update/Hasil Bank, Keterangan, Target Akad, dan Progress Unit.</p>
         </div>
         <div class="admin-actions">
           <button class="secondary-button" id="addSourceButton" type="button">+ Tambah spreadsheet</button>
@@ -1044,6 +1044,7 @@
         bankEntryDate: ["Tgl Masuk Bank", "Tanggal Masuk Bank"],
         wwc: ["WWC"],
         bankUpdate: ["Update / Hasil Bank", "Update/Hasil Bank", "Hasil Bank", "Update Bank"],
+        notes: ["Keterangan", "Catatan"],
         akadTarget: ["Target Akad & Ket", "Target Akad", "Target Akad dan Keterangan"],
         progress: ["Progress Unit", "Progress"]
       };
@@ -1079,7 +1080,7 @@
             current = {
               number: "", entryDate: null, block: "", user: "", marketing: "",
               price: 0, fileStatus: "", bankEntryDate: null, wwc: "",
-              bankUpdate: "", akadTarget: "", progress: "", bankStatuses: []
+              bankUpdate: "", notes: "", akadTarget: "", progress: "", bankStatuses: []
             };
             projects.set(key, current);
           }
@@ -1095,6 +1096,7 @@
         assignText("fileStatus");
         assignText("wwc");
         assignText("bankUpdate");
+        assignText("notes");
         assignText("akadTarget");
         assignText("progress");
         if (block) current.block = block;
@@ -1654,7 +1656,7 @@
         addMiniKpi(kpis, "CPL", data.available ? formatMoney(data.cpl) : "—", true);
         card.append(kpis);
 
-        card.append(createElement("div", "mini-section-title", "Pengeluaran per advertiser"));
+        card.append(createElement("div", "mini-section-title", "Pengeluaran per sales"));
         if (!data.available) {
           const message = key === "custom"
             ? "Data Ads untuk rentang pilihan belum tersedia karena spreadsheet rekap tidak menyediakan data harian."
@@ -1826,7 +1828,7 @@
 
         const tableWrap = createElement("div", "detail-table-wrap");
         const table = createElement("table", "detail-table");
-        const headings = ["Tgl ITJ", "Blok", "Nama User", "Marketing", "Harga Jadi", "Bank Tujuan", "Status Berkas", "Tgl Masuk Bank", "WWC", "Update / Hasil Bank", "Target Akad & Ket", "Progress Unit"];
+        const headings = ["No", "Tgl ITJ", "Blok", "Nama User", "Marketing", "Harga Jadi", "Bank Tujuan", "Status Berkas", "Tgl Masuk Bank", "WWC", "Update / Hasil Bank", "Target Akad", "Keterangan", "Progress Unit"];
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
         headings.forEach((heading) => headerRow.append(createElement("th", "", heading)));
@@ -1843,13 +1845,13 @@
             .map((status) => `${status.bank}: ${formatter(status[key])}`)
             .join(" · ");
           [
-            dateText(unit.entryDate) || "—", unit.block || "—", unit.user || "—",
+            unit.number || "—", dateText(unit.entryDate) || "—", unit.block || "—", unit.user || "—",
             unit.marketing || "—", unit.price ? formatMoney(unit.price) : "—", banks,
             bankDetails("fileStatus") || unit.fileStatus || "—",
             bankDetails("bankEntryDate", dateText) || dateText(unit.bankEntryDate) || "—",
             bankDetails("wwc") || unit.wwc || "—",
             bankDetails("bankUpdate") || unit.bankUpdate || "—",
-            unit.akadTarget || "—", unit.progress || "—"
+            unit.akadTarget || "—", unit.notes || "—", unit.progress || "—"
           ].forEach((value) => row.append(createElement("td", "", value)));
           tbody.append(row);
         });
